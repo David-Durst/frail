@@ -38,7 +38,6 @@ def var_f(name: str, width: int = 32, lake_state: LakeDSLState = default_lake_st
 class Int(AST):
     val: int
     bit_width: int
-    producing_seq: int = None
 
 
 def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Int:
@@ -58,9 +57,6 @@ def bool_f(val: bool, lake_state: LakeDSLState = default_lake_state) -> Bool:
 @dataclass(eq=True, frozen=True)
 class RecurrenceSeq(AST):
     producing_recurrence: int
-
-    def get_ith_element(self, lake_state: LakeDSLState = default_lake_state):
-        return Int(lake_state.incr(), None, self.index)
 
 
 def recurrence_seq_f(producing_recurrence: int, lake_state: LakeDSLState = default_lake_state) -> RecurrenceSeq:
