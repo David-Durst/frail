@@ -1,29 +1,38 @@
 from dataclasses import dataclass, field
 from typing import Callable, Dict
 
+
 @dataclass(eq=True, frozen=True)
 class AST():
     index: int
+
     def __post_init__(self):
         default_lake_state.program_map[self.index] = self
+
 
 @dataclass(eq=True)
 class LakeDSLState():
     cur_index: int = 0
     program_map: Dict[int, AST] = field(default_factory=dict)
+
     def incr(self):
         old = self.cur_index
         self.cur_index = old + 1
         return old
 
+
 default_lake_state = LakeDSLState()
+
 
 @dataclass(eq=True, frozen=True)
 class Var(AST):
     name: str
+    width: int
 
-def varL(name: str, lake_state: LakeDSLState = default_lake_state):
-    return Var(lake_state.incr(), name)
+
+def var_f(name: str, width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Var:
+    return Var(lake_state.incr(), name, width)
+
 
 @dataclass(eq=True, frozen=True)
 class Int(AST):
@@ -31,16 +40,20 @@ class Int(AST):
     bit_width: int
     producing_seq: int = None
 
-def intL(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state):
+
+def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Int:
     return Int(lake_state.incr(), bit_width, val)
+
 
 @dataclass(eq=True, frozen=True)
 class Bool(AST):
     val: bool
     producing_seq: int = None
 
-def boolL(val: bool, lake_state: LakeDSLState = default_lake_state):
+
+def bool_f(val: bool, lake_state: LakeDSLState = default_lake_state) -> Bool:
     return Int(lake_state.incr(), val)
+
 
 @dataclass(eq=True, frozen=True)
 class RecurrenceSeq(AST):
@@ -50,65 +63,84 @@ class RecurrenceSeq(AST):
         return Int(lake_state.incr(), None, self.index)
 
 
-def recurrence_seqL(producing_recurrence: int, lake_state: LakeDSLState = default_lake_state):
+def recurrence_seq_f(producing_recurrence: int, lake_state: LakeDSLState = default_lake_state) -> RecurrenceSeq:
     return Int(lake_state.incr(), producing_recurrence)
+
 
 @dataclass(eq=True, frozen=True)
 class BinOp(AST):
     arg0_index: int
     arg1_index: int
 
+
 @dataclass(frozen=True)
 class AddOp(BinOp):
     pass
 
-def addL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AST:
+
+def add_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AddOp:
     return AddOp(lake_state.incr(), arg0.index, arg1.index)
+
 
 @dataclass(frozen=True)
 class MulOp(BinOp):
     pass
 
-def mulL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AST:
+
+def mul_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> MulOp:
     return MulOp(lake_state.incr(), arg0.index, arg1.index)
+
 
 @dataclass(frozen=True)
 class ModOp(BinOp):
     pass
 
-def modL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AST:
+
+def mod_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> ModOp:
     return ModOp(lake_state.incr(), arg0.index, arg1.index)
 
+
 @dataclass(frozen=True)
-class SelectBitsOp(BinOp):
+class SelectBitsOp(AST):
+    arg0_index: int
+    bits: int
     pass
 
-def select_bitsL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AST:
-    return SelectBitsOp(lake_state.incr(), arg0.index, arg1.index)
+
+def select_bits_f(arg0: AST, arg1: int, lake_state: LakeDSLState = default_lake_state) -> SelectBitsOp:
+    return SelectBitsOp(lake_state.incr(), arg0.index, arg1)
+
 
 @dataclass(frozen=True)
 class IfOp(BinOp):
     b_index: int
 
-def ifL(b: Bool, arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state):
+
+def if_f(b: Bool, arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> IfOp:
     return IfOp(lake_state.incr(), arg0.index, arg1.index, b.index)
+
 
 @dataclass(frozen=True)
 class EqOp(BinOp):
     pass
 
-def eqL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state):
+
+def eq_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> EqOp:
     return EqOp(lake_state.incr(), arg0.index, arg1.index)
 
+
 @dataclass(frozen=True)
-class ScanConstOp(BinOp):
+class ScanConstOp(AST):
     f: Callable[[Var], Int]
 
     def get_seq(self, lake_state: LakeDSLState = default_lake_state):
         return RecurrenceSeq(lake_state.incr(), self.index)
 
-def scan_constL(f: Callable[[Var], Int], lake_state: LakeDSLState = default_lake_state):
+
+def scan_const_f(f: Callable[[Var], Int], lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
     return ScanConstOp(lake_state.incr(), f)
+
+
 """
 @dataclass(frozen=True)
 class Affine_Seq():
