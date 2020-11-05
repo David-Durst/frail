@@ -62,6 +62,13 @@ def addL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) ->
     return AddOp(lake_state.incr(), arg0, arg1)
 
 @dataclass(frozen=True)
+class MulOp(BinOp):
+    pass
+
+def mulL(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AST:
+    return MulOp(lake_state.incr(), arg0, arg1)
+
+@dataclass(frozen=True)
 class ModOp(BinOp):
     pass
 
