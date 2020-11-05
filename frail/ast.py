@@ -25,10 +25,11 @@ def varL(name: str, lake_state: LakeDSLState = default_lake_state):
 @dataclass(eq=True, frozen=True)
 class Int(AST):
     val: int
+    bit_width: int
     producing_seq: int = None
 
-def intL(val: int, lake_state: LakeDSLState = default_lake_state):
-    return Int(lake_state.incr(), val)
+def intL(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state):
+    return Int(lake_state.incr(), bit_width, val)
 
 @dataclass(eq=True, frozen=True)
 class Bool(AST):
