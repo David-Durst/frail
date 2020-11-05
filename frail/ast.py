@@ -41,7 +41,7 @@ class Int(AST):
 
 
 def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Int:
-    return Int(lake_state.incr(), bit_width, val)
+    return Int(lake_state.incr(), val, bit_width)
 
 
 @dataclass(eq=True, frozen=True)
