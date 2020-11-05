@@ -22,19 +22,17 @@ def print_frail(e: AST, indentation: int = 1, scan_strs: dict[int, str] = {}, pr
         arg1_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
         dict[cur_scan_idx] = dict[cur_scan_idx] + arg0_str + " + " + arg1_str
     elif e_type == MulOp:
-        print_frail(e.arg0, indentation, scan_strs, cur_scan_idx, False)
-        dict[cur_scan_idx] = dict[cur_scan_idx] + " * "
-        print_frail(e.arg1, indentation, scan_strs, cur_scan_idx, False)
+        arg0_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
+        arg1_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
+        dict[cur_scan_idx] = dict[cur_scan_idx] + arg0_str + " * " + arg1_str
     elif e_type == ModOp:
-        print_frail(e.arg0, indentation, scan_strs, cur_scan_idx, False)
-        dict[cur_scan_idx] = dict[cur_scan_idx] + " % "
-        print_frail(e.arg1, indentation, scan_strs, cur_scan_idx, False)
+        arg0_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
+        arg1_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
+        dict[cur_scan_idx] = dict[cur_scan_idx] + arg0_str + " % " + arg1_str
     elif e_type == SelectBitsOp:
-        dict[cur_scan_idx] = dict[cur_scan_idx] + "select_bits("
-        print_frail(e.arg0, indentation, scan_strs, cur_scan_idx, False)
-        dict[cur_scan_idx] = dict[cur_scan_idx] + ", "
-        print_frail(e.arg1, indentation, scan_strs, cur_scan_idx, False)
-        dict[cur_scan_idx] = dict[cur_scan_idx] + ")"
+        arg0_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
+        arg1_str = print_arg(e.arg0, indentation, scan_strs, printed_ops, cur_scan_idx)
+        dict[cur_scan_idx] = dict[cur_scan_idx] + "select_bits(" + arg0_str + ", " + arg1_str + ")"
     elif e_type == IfOp:
         dict[cur_scan_idx] = dict[cur_scan_idx] + "if("
         print_frail(e.b, indentation, scan_strs, cur_scan_idx, False)
@@ -68,7 +66,7 @@ def print_frail(e: AST, indentation: int = 1, scan_strs: dict[int, str] = {}, pr
 def print_arg(arg: AST, indentation: int, scan_strs: dict[int,str], printed_ops: set[int], cur_scan_idx: int):
     if arg.index not in printed_ops:
         printed_ops.add(arg.index)
-        dict[cur_scan_idx] = dict[cur_scan_idx] + (indent_str * (indentation - 1)) + " let x" + str(arg.index) + " = "
+        dict[cur_scan_idx] = dict[cur_scan_idx] + (indent_str * indentation) + " let x" + str(arg.index) + " = "
         print_frail(arg, indentation, scan_strs, printed_ops, cur_scan_idx, False)
     return "x" + str(arg.index)
 
