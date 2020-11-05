@@ -29,16 +29,16 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
             return
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Var(" + str(e.name) + ")\n"
     elif e_type == Int:
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + str(e.val) + "\n"
     elif e_type == Bool:
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + str(e.val) + "\n"
     elif e_type == RecurrenceSeq:
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.producing_recurrence) + "[i]\n"
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
@@ -48,32 +48,32 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
     elif e_type == AddOp:
         arg0_str = print_arg(e.arg0_index, lake_state)
         arg1_str = print_arg(e.arg1_index, lake_state)
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " + " + arg1_str + "\n"
     elif e_type == MulOp:
         arg0_str = print_arg(e.arg0_index, lake_state)
         arg1_str = print_arg(e.arg1_index, lake_state)
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " * " + arg1_str + "\n"
     elif e_type == ModOp:
         arg0_str = print_arg(e.arg0_index, lake_state)
         arg1_str = print_arg(e.arg1_index, lake_state)
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " % " + arg1_str + "\n"
     elif e_type == SelectBitsOp:
         arg0_str = print_arg(e.arg0_index, lake_state)
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "select_bits(" + arg0_str + ", " + str(e.bits) + ")\n"
     elif e_type == IfOp:
         b_str = print_arg(e.b_index, lake_state)
         arg0_str = print_arg(e.arg0_index, lake_state)
         arg1_str = print_arg(e.arg1_index, lake_state)
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "if(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == EqOp:
         arg0_str = print_arg(e.arg0_index, lake_state)
         arg1_str = print_arg(e.arg1_index, lake_state)
-        print_let(e, cur_scan_idx)
+        print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " == " + arg1_str + "\n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
@@ -103,5 +103,5 @@ def print_arg(arg_index: int, lake_state: LakeDSLState):
         return "x" + str(arg_index)
 
 
-def print_let(arg: int, cur_scan_idx: int):
+def print_let(arg: AST):
     scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "let x" + str(arg.index) + " = "
