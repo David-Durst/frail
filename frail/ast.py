@@ -37,7 +37,7 @@ def var_f(name: str, width: int = 32, lake_state: LakeDSLState = default_lake_st
 @dataclass(eq=True, frozen=True)
 class Int(AST):
     val: int
-    bit_width: int
+    width: int
 
 
 def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Int:
@@ -128,13 +128,14 @@ def eq_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) ->
 @dataclass(frozen=True)
 class ScanConstOp(AST):
     f: Callable[[Var], Int]
+    width: int
 
     def get_seq(self, lake_state: LakeDSLState = default_lake_state):
         return RecurrenceSeq(lake_state.incr(), self.index)
 
 
-def scan_const_f(f: Callable[[Var], Int], lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
-    return ScanConstOp(lake_state.incr(), f)
+def scan_const_f(f: Callable[[Var], Int], width: int = 32, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
+    return ScanConstOp(lake_state.incr(), f, width)
 
 
 """

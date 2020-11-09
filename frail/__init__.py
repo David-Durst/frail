@@ -1,3 +1,4 @@
 from .ast import *
 from .examples import *
-from .printer import *
+from .debug_printer import *
+from .smt_printer import *
