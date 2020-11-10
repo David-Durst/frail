@@ -11,7 +11,7 @@ cur_scan_lambda_var: Var = None
 smt_prologue = """
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
 from pysmt.typing import BVType 
-from frail import BVAddExtend, BVMulExtend
+from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
 """
 
 
@@ -63,12 +63,12 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVAdde(" + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVAddExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == MulOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVMule(" + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVMulExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == ModOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
@@ -88,7 +88,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Equals(" + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVEqualsExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
