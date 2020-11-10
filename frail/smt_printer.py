@@ -11,6 +11,7 @@ cur_scan_lambda_var: Var = None
 smt_prologue = """
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
 from pysmt.typing import BVType 
+from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
 """
 
@@ -142,7 +143,7 @@ def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: 
     scans_results_b = name_b + "_scans_results"
     print(f"""
 with Portfolio(["cvc4", "yices"],
-       logic="BV",
+       logic=logicBV,
        incremental=True,
        generate_models=False) as s:
     for step in range({num_iterations}):
@@ -151,7 +152,7 @@ with Portfolio(["cvc4", "yices"],
         for i in range(len({scans_b})):
             globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
         s.push()
-        s.add_assertion(ForAll({free_vars_name_a}, Exists({free_vars_name_b}, Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
+        s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
         res = s.solve()
         assert res
         s.pop()
