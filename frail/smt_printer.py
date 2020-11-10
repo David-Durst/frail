@@ -9,7 +9,7 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 smt_prologue = """
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Int, Bool, Ite, BV, BVURem, BVExtract
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Int, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists
 from pysmt.typing import BVType 
 """
 
@@ -34,10 +34,13 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
             return
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "if " + str(e.index) + " not in " + \
+                                  name + "_free_vars:\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + indent_str + name + "_free_vars[" + \
+                                  str(e.index) + "] = Symbol(\"" + str(e.name) + "\", BVType(" + str(e.width) + "))\n"
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Symbol(\"" + str(e.name) + "\", BVType(" + str(e.width) + "))\n"
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + name + "_free_vars.append(BV(x" + \
-                                  str(e.index) + "))" + "\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] +  name + "_free_vars[" + str(e.index) + \
+                                  "]" + "\n"
     elif e_type == Int:
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BV(" + str(e.val) + "," + str(e.width) + ")" + "\n"
@@ -93,19 +96,23 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "return x" + str(f_res.index)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "\n)\n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans.append(" + scan_func_name + ")\n"
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scan_vars.append(Symbol(\"" + \
-                                  cur_scan_lambda_var.name + "\", " + str(e.width) + "))\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans_results.append(\"" + recurrence_seq_str + \
+                                  str(e.index) + "\")\n"
+        #scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scan_vars.append(BV(\"" + \
+        #                          cur_scan_lambda_var.name + "\", 0, " + str(e.width) + "))\n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
     if root:
         print(smt_prologue)
-        print(name + "_free_vars = []")
+        print(name + "_free_vars = {}")
         print(name + "_scans = []")
-        print(name + "_scan_vars = []")
+        print(name + "_scans_results = []")
+        #print(name + "_scan_vars = []")
         keys = sorted(scan_strs.keys())
         for k in keys:
             print(scan_strs[k])
+
 
 
 def print_arg(arg_index: int, lake_state: LakeDSLState, name: str):
@@ -119,6 +126,37 @@ def print_arg(arg_index: int, lake_state: LakeDSLState, name: str):
 def print_let(arg: AST):
     scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "x" + str(arg.index) + " = "
 
+def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: int,
+                  lake_state: LakeDSLState = default_lake_state):
+    frail_to_smt(e_a, True, lake_state, name_a)
+    frail_to_smt(e_b, True, lake_state, name_b)
+    free_vars_name_a = name_a + "_free_vars"
+    scans_a = name_a + "_scans"
+    scans_results_a = name_a + "_scans_results"
+    free_vars_name_b = name_b + "_free_vars"
+    scans_b = name_b + "_scans"
+    scans_results_b = name_b + "_scans_results"
+    print(f"""
+with Portfolio(["cvc4", "yices"],
+       logic="BV",
+       incremental=True,
+       generate_models=False) as s:
+    for step in range({num_iterations}):
+        for i in range(len({scans_a})):
+            globals()[{scans_results_a}[i]] = {scans_a}[i](globals()[{scans_results_a}[i]])
+        for i in range(len({scans_b})):
+            globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
+        s.push()
+        s.add_assertion(ForAll({free_vars_name_a}, Exists({free_vars_name_b}, Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
+        res = s.solve()
+        assert res
+        s.pop()
+    """)
+
+
 def print_ex_smt():
+    check_circuit(design_a, "design_a", design_b, "design_b", 1000)
+
+def print_frail_smt():
     frail_to_smt(design_b, name="design_b")
     frail_to_smt(design_a, name="design_a")
