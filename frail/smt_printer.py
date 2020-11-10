@@ -50,11 +50,14 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
     elif e_type == RecurrenceSeq:
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.producing_recurrence) + "\n"
+        old_printed_ops = printed_ops
+        printed_ops = set()
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         frail_to_smt(lake_state.program_map[e.producing_recurrence], False, lake_state, name)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
+        printed_ops = old_printed_ops
     elif e_type == AddOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
@@ -94,7 +97,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         f_res = e.f(cur_scan_lambda_var)
         frail_to_smt(f_res, False, lake_state, name)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "return x" + str(f_res.index)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "\n)\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "\n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans.append(" + scan_func_name + ")\n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans_results.append(\"" + recurrence_seq_str + \
                                   str(e.index) + "\")\n"
