@@ -101,8 +101,8 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans.append(" + scan_func_name + ")\n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans_results.append(\"" + recurrence_seq_str + \
                                   str(e.index) + "\")\n"
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.index) + " = BV(\"" + \
-                                  recurrence_seq_str + str(e.index) + "\", 0, " + str(e.width) + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.index) + " = BV(0, " + \
+                                  str(e.width) + ")\n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
