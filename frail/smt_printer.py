@@ -9,7 +9,7 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 smt_prologue = """
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
@@ -142,11 +142,11 @@ def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: 
     scans_b = name_b + "_scans"
     scans_results_b = name_b + "_scans_results"
     print(f"""
-with Portfolio(["cvc4", "yices"],
+with Solver("cvc4",
        logic=logicBV,
-       incremental=True,
-       generate_models=False) as s:
+       incremental=True) as s:
     for step in range({num_iterations}):
+        print("handling step " + str(step))
         for i in range(len({scans_a})):
             globals()[{scans_results_a}[i]] = {scans_a}[i](globals()[{scans_results_a}[i]])
         for i in range(len({scans_b})):

@@ -1,5 +1,5 @@
 
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
@@ -82,7 +82,7 @@ design_a_scans_results.append("scan_const8")
 scan_const8 = BV(0, 32)
 
 
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
@@ -111,11 +111,11 @@ design_b_scans_results.append("scan_const0")
 scan_const0 = BV(0, 32)
 
 
-with Portfolio(["cvc4", "yices"],
+with Solver("cvc4",
        logic=logicBV,
-       incremental=True,
-       generate_models=False) as s:
+       incremental=True) as s:
     for step in range(1000):
+        print("handling step " + str(step))
         for i in range(len(design_a_scans)):
             globals()[design_a_scans_results[i]] = design_a_scans[i](globals()[design_a_scans_results[i]])
         for i in range(len(design_b_scans)):
