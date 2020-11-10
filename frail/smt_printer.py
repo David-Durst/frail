@@ -9,7 +9,7 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 smt_prologue = """
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Int, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
 from pysmt.typing import BVType 
 """
 
@@ -76,7 +76,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
     elif e_type == SelectBitsOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVExtact(" + arg0_str + ", 0, " + str(e.bits) + " - 1)\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVExtract(" + arg0_str + ", 0, " + str(e.bits) + " - 1)\n"
     elif e_type == IfOp:
         b_str = print_arg(e.b_index, lake_state, name)
         arg0_str = print_arg(e.arg0_index, lake_state, name)
@@ -101,8 +101,8 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans.append(" + scan_func_name + ")\n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scans_results.append(\"" + recurrence_seq_str + \
                                   str(e.index) + "\")\n"
-        #scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + name + "_scan_vars.append(BV(\"" + \
-        #                          cur_scan_lambda_var.name + "\", 0, " + str(e.width) + "))\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.index) + " = BV(\"" + \
+                                  recurrence_seq_str + str(e.index) + "\", 0, " + str(e.width) + ")\n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
