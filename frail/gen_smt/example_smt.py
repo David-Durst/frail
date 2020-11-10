@@ -1,0 +1,124 @@
+
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
+from pysmt.typing import BVType 
+
+design_a_free_vars = {}
+design_a_scans = []
+design_a_scans_results = []
+
+def scan_const3_f(scan_var_3): 
+  x38 = BV(1,32)
+  x39 = BVAdd(scan_var_3, x38)
+  if 1 not in design_a_free_vars:
+    design_a_free_vars[1] = Symbol("x_max", BVType(32))
+  x1 = design_a_free_vars[1]
+  x40 = BVURem(x39, x1)
+  return x40
+design_a_scans.append(scan_const3_f)
+design_a_scans_results.append("scan_const3")
+scan_const3 = BV(0, 32)
+
+def scan_const4_f(scan_var_4): 
+  x30 = scan_const3
+  if 1 not in design_a_free_vars:
+    design_a_free_vars[1] = Symbol("x_max", BVType(32))
+  x1 = design_a_free_vars[1]
+  x31 = Equals(x30, x1)
+  x32 = BV(1,32)
+  x33 = BV(0,32)
+  x34 = Ite(x31, x32, x33)
+  x35 = BVAdd(scan_var_4, x34)
+  if 2 not in design_a_free_vars:
+    design_a_free_vars[2] = Symbol("y_max", BVType(32))
+  x2 = design_a_free_vars[2]
+  x36 = BVURem(x35, x2)
+  return x36
+design_a_scans.append(scan_const4_f)
+design_a_scans_results.append("scan_const4")
+scan_const4 = BV(0, 32)
+
+def scan_const5_f(scan_var_5): 
+  x18 = scan_const3
+  if 19 not in design_a_free_vars:
+    design_a_free_vars[19] = Symbol("x_stride", BVType(32))
+  x19 = design_a_free_vars[19]
+  x20 = BVMul(x18, x19)
+  return x20
+design_a_scans.append(scan_const5_f)
+design_a_scans_results.append("scan_const5")
+scan_const5 = BV(0, 32)
+
+def scan_const6_f(scan_var_6): 
+  x26 = scan_const4
+  if 27 not in design_a_free_vars:
+    design_a_free_vars[27] = Symbol("y_stride", BVType(32))
+  x27 = design_a_free_vars[27]
+  x28 = BVMul(x26, x27)
+  return x28
+design_a_scans.append(scan_const6_f)
+design_a_scans_results.append("scan_const6")
+scan_const6 = BV(0, 32)
+
+def scan_const7_f(scan_var_7): 
+  x14 = scan_const5
+  x15 = scan_const6
+  x16 = BVAdd(x14, x15)
+  return x16
+design_a_scans.append(scan_const7_f)
+design_a_scans_results.append("scan_const7")
+scan_const7 = BV(0, 32)
+
+def scan_const8_f(scan_var_8): 
+  x10 = scan_const7
+  if 11 not in design_a_free_vars:
+    design_a_free_vars[11] = Symbol("offset", BVType(32))
+  x11 = design_a_free_vars[11]
+  x12 = BVAdd(x10, x11)
+  return x12
+design_a_scans.append(scan_const8_f)
+design_a_scans_results.append("scan_const8")
+scan_const8 = BV(0, 32)
+
+
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
+from pysmt.typing import BVType 
+
+design_b_free_vars = {}
+design_b_scans = []
+design_b_scans_results = []
+
+def scan_const0_f(scan_var_0): 
+  if 42 not in design_b_free_vars:
+    design_b_free_vars[42] = Symbol("x_delta", BVType(12))
+  x42 = design_b_free_vars[42]
+  x43 = BVAdd(scan_var_0, x42)
+  x44 = BVExtract(x43, 0, 12 - 1)
+  x45 = BV(0,32)
+  x46 = Equals(x44, x45)
+  if 47 not in design_b_free_vars:
+    design_b_free_vars[47] = Symbol("y_delta", BVType(32))
+  x47 = design_b_free_vars[47]
+  x48 = BV(0,32)
+  x49 = Ite(x46, x47, x48)
+  x50 = BVAdd(x43, x49)
+  return x50
+design_b_scans.append(scan_const0_f)
+design_b_scans_results.append("scan_const0")
+scan_const0 = BV(0, 32)
+
+
+with Portfolio(["cvc4", "yices"],
+       logic="BV",
+       incremental=True,
+       generate_models=False) as s:
+    for step in range(1000):
+        for i in range(len(design_a_scans)):
+            globals()[design_a_scans_results[i]] = design_a_scans[i](globals()[design_a_scans_results[i]])
+        for i in range(len(design_b_scans)):
+            globals()[design_b_scans_results[i]] = design_b_scans[i](globals()[design_b_scans_results[i]])
+        s.push()
+        s.add_assertion(ForAll(design_a_free_vars, Exists(design_b_free_vars, Equals(globals()[design_a_scans_results[i]], globals()[design_b_scans_results[i]]))))
+        res = s.solve()
+        assert res
+        s.pop()
+    
