@@ -13,6 +13,7 @@ from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BV
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
+import time
 """
 
 
@@ -147,6 +148,7 @@ with Solver("cvc4",
        incremental=True) as s:
     for step in range({num_iterations}):
         print("handling step " + str(step))
+        start = time.time()
         for i in range(len({scans_a})):
             globals()[{scans_results_a}[i]] = {scans_a}[i](globals()[{scans_results_a}[i]])
         for i in range(len({scans_b})):
@@ -156,6 +158,8 @@ with Solver("cvc4",
         res = s.solve()
         assert res
         s.pop()
+        end = time.time()
+        print("time: " + str(start - end))
     """)
 
 

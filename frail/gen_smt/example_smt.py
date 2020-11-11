@@ -3,6 +3,7 @@ from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BV
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
+import time
 
 design_a_free_vars = {}
 design_a_scans = []
@@ -86,6 +87,7 @@ from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BV
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
+import time
 
 design_b_free_vars = {}
 design_b_scans = []
@@ -116,6 +118,7 @@ with Solver("cvc4",
        incremental=True) as s:
     for step in range(1000):
         print("handling step " + str(step))
+        start = time.time()
         for i in range(len(design_a_scans)):
             globals()[design_a_scans_results[i]] = design_a_scans[i](globals()[design_a_scans_results[i]])
         for i in range(len(design_b_scans)):
@@ -125,4 +128,6 @@ with Solver("cvc4",
         res = s.solve()
         assert res
         s.pop()
+        end = time.time()
+        print("time: " + str(start - end))
     
