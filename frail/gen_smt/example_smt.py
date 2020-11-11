@@ -1,5 +1,5 @@
 
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver, is_sat, write_smtlib
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
@@ -83,7 +83,7 @@ design_a_scans_results.append("scan_const8")
 scan_const8 = BV(0, 32)
 
 
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver, is_sat, write_smtlib
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
@@ -113,21 +113,19 @@ design_b_scans_results.append("scan_const0")
 scan_const0 = BV(0, 32)
 
 
+res = Bool(True)
 with Solver("cvc4",
        logic=logicBV,
        incremental=True) as s:
-    for step in range(1000):
+    for step in range(30):
         print("handling step " + str(step))
         start = time.time()
         for i in range(len(design_a_scans)):
             globals()[design_a_scans_results[i]] = design_a_scans[i](globals()[design_a_scans_results[i]])
         for i in range(len(design_b_scans)):
             globals()[design_b_scans_results[i]] = design_b_scans[i](globals()[design_b_scans_results[i]])
-        s.push()
-        s.add_assertion(ForAll(design_a_free_vars.values(), Exists(design_b_free_vars.values(), Equals(globals()[design_a_scans_results[i]], globals()[design_b_scans_results[i]]))))
-        res = s.solve()
-        assert res
-        s.pop()
+        res = And(res, ForAll(design_a_free_vars.values(), Exists(design_b_free_vars.values(), Equals(globals()[design_a_scans_results[i]], globals()[design_b_scans_results[i]]))))
         end = time.time()
-        print("time: " + str(start - end))
+        print("time: " + str(round(end - start,2)) + "s")
+write_smtlib(res, "res.smtlib")
     

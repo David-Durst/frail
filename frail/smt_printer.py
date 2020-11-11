@@ -9,7 +9,7 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 smt_prologue = """
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver, is_sat, write_smtlib
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
@@ -143,6 +143,7 @@ def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: 
     scans_b = name_b + "_scans"
     scans_results_b = name_b + "_scans_results"
     print(f"""
+res = Bool(True)
 with Solver("cvc4",
        logic=logicBV,
        incremental=True) as s:
@@ -153,18 +154,15 @@ with Solver("cvc4",
             globals()[{scans_results_a}[i]] = {scans_a}[i](globals()[{scans_results_a}[i]])
         for i in range(len({scans_b})):
             globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
-        s.push()
-        s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
-        res = s.solve()
-        assert res
-        s.pop()
+        res = And(res, ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
         end = time.time()
-        print("time: " + str(start - end))
+        print("time: " + str(round(end - start,2)) + "s")
+write_smtlib(res, "res.smtlib")
     """)
 
 
 def print_ex_smt():
-    check_circuit(design_a, "design_a", design_b, "design_b", 1000)
+    check_circuit(design_a, "design_a", design_b, "design_b", 30)
 
 def print_frail_smt():
     frail_to_smt(design_b, name="design_b")
