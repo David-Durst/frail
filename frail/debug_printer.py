@@ -36,14 +36,11 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
             return
-        if f"x{e.index}" not in VarTable.keys():
-            VarTable[f"x{e.index}"] = "Var(" + str(e.name) + ")"
+        VarTable[f"x{e.index}"] = "Var(" + str(e.name) + ")"
     elif e_type == Int:
-        if f"x{e.index}" not in VarTable.keys():
-            VarTable[f"x{e.index}"] = str(e.val)
+        VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == Bool:
-        if f"x{e.index}" not in VarTable.keys():
-            VarTable[f"x{e.index}"] = str(e.val)
+        VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == RecurrenceSeq:
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.producing_recurrence) + "[i]\n"
