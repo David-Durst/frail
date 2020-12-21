@@ -42,8 +42,7 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
     elif e_type == Bool:
         VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == RecurrenceSeq:
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.producing_recurrence) + "[i]\n"
+        VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence) + "[i]"
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         print_frail(lake_state.program_map[e.producing_recurrence], False, lake_state)
