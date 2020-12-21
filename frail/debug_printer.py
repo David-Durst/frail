@@ -85,7 +85,7 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(
             e.index) + "(lambda " + cur_scan_lambda_var.name
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "): \n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + ": \n"
         f_res = e.f(cur_scan_lambda_var)
         print_frail(f_res, False, lake_state)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "return x" + str(f_res.index)
