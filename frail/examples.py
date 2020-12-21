@@ -1,5 +1,5 @@
 from frail.ast import *
-
+from frail.debug_printer import *
 
 def design_b_func(z: Var):
     x_width = 12
@@ -14,11 +14,12 @@ def design_b_func(z: Var):
 
 
 design_b = scan_const_f(design_b_func)
+# print_frail(design_b)
 
 x_max = var_f("x_max")
 y_max = var_f("y_max")
 design_a_x = scan_const_f(lambda z: mod_f(add_f(z, int_f(1)), x_max))
-
+print_frail(design_a_x)
 
 def design_a_y_func(z: Var):
     x_val = design_a_x.get_seq()
