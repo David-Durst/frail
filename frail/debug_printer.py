@@ -7,10 +7,17 @@ scan_strs: Dict[int, str] = {}
 printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
+VarTable: Dict[str, str] = {}
+
+
+def get_var_val(key):
+    if key in VarTable.keys():
+        return VarTable[key]
+    return key
 
 
 def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global scan_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var
+    global scan_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
     if root:
         scan_strs = {}
         printed_ops = set()
@@ -29,14 +36,11 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
             return
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Var(" + str(e.name) + ")\n"
+        VarTable[f"x{e.index}"] = "Var(" + str(e.name) + ")"
     elif e_type == Int:
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + str(e.val) + "\n"
+        VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == Bool:
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + str(e.val) + "\n"
+        VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == RecurrenceSeq:
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.producing_recurrence) + "[i]\n"
@@ -46,33 +50,33 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == AddOp:
-        arg0_str = print_arg(e.arg0_index, lake_state)
-        arg1_str = print_arg(e.arg1_index, lake_state)
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " + " + arg1_str + "\n"
     elif e_type == MulOp:
-        arg0_str = print_arg(e.arg0_index, lake_state)
-        arg1_str = print_arg(e.arg1_index, lake_state)
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " * " + arg1_str + "\n"
     elif e_type == ModOp:
-        arg0_str = print_arg(e.arg0_index, lake_state)
-        arg1_str = print_arg(e.arg1_index, lake_state)
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " % " + arg1_str + "\n"
     elif e_type == SelectBitsOp:
-        arg0_str = print_arg(e.arg0_index, lake_state)
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "select_bits(" + arg0_str + ", " + str(e.bits) + ")\n"
     elif e_type == IfOp:
-        b_str = print_arg(e.b_index, lake_state)
-        arg0_str = print_arg(e.arg0_index, lake_state)
-        arg1_str = print_arg(e.arg1_index, lake_state)
+        b_str = get_var_val(print_arg(e.b_index, lake_state))
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "if(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == EqOp:
-        arg0_str = print_arg(e.arg0_index, lake_state)
-        arg1_str = print_arg(e.arg1_index, lake_state)
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " == " + arg1_str + "\n"
     elif e_type == ScanConstOp:
