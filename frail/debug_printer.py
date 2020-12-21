@@ -25,13 +25,13 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
 
     if e.index in printed_ops:
         return
-    
+
     printed_ops.add(e.index)
     e_type = type(e)
     # start with empty string if printing expression not in a scan
     if not scan_strs:
         scan_strs[-1] = ""
-    
+
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:

@@ -1,6 +1,7 @@
 from frail.ast import *
 from frail.debug_printer import *
 
+
 def design_b_func(z: Var):
     x_width = 12
     z = add_f(z, var_f("x_delta", x_width))
