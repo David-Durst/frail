@@ -9,8 +9,11 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 smt_prologue = """
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
+from pysmt.logics import BV as logicBV
+from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
+import time
 """
 
 
@@ -62,12 +65,12 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVAdd(" + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVAddExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == MulOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVMul(" + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVMulExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == ModOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
@@ -87,7 +90,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Equals(" + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVEqualsExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
@@ -140,20 +143,23 @@ def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: 
     scans_b = name_b + "_scans"
     scans_results_b = name_b + "_scans_results"
     print(f"""
-with Portfolio(["cvc4", "yices"],
-       logic="BV",
-       incremental=True,
-       generate_models=False) as s:
+with Solver("cvc4",
+       logic=logicBV,
+       incremental=True) as s:
     for step in range({num_iterations}):
+        print("handling step " + str(step))
+        start = time.time()
         for i in range(len({scans_a})):
             globals()[{scans_results_a}[i]] = {scans_a}[i](globals()[{scans_results_a}[i]])
         for i in range(len({scans_b})):
             globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
         s.push()
-        s.add_assertion(ForAll({free_vars_name_a}, Exists({free_vars_name_b}, Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
+        s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
         res = s.solve()
         assert res
         s.pop()
+        end = time.time()
+        print("time: " + str(start - end))
     """)
 
 
