@@ -154,7 +154,7 @@ with Solver("cvc4",
         for i in range(len({scans_b})):
             globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
         s.push()
-        s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[i]], globals()[{scans_results_b}[i]]))))
+        s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[len({scans_results_a})-1]], globals()[{scans_results_b}[len({scans_results_b})-1]]))))
         res = s.solve()
         assert res
         s.pop()
