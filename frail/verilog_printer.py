@@ -3,7 +3,6 @@ from typing import Set, Dict
 
 tab_str = "    "
 recurrence_seq_str = "scan_const"
-scan_strs: Dict[int, str] = {}
 io_strs: Dict[int, str] = {}
 var_strs: Dict[int, str] = {}
 comb_strs: Dict[int, str] = {}
@@ -22,9 +21,11 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global scan_strs, io_strs, comb_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
+    global io_strs, var_strs, comb_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
     if root:
-        scan_strs = {}
+        io_strs = {}
+        var_strs ={}
+        comb_strs = {}
         printed_ops = set()
         cur_scan_idx = -1
 
@@ -34,9 +35,6 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     printed_ops.add(e.index)
     e_type = type(e)
     # start with empty string if printing expression not in a scan
-    if not scan_strs:
-        scan_strs[-1] = ""
-
     if not io_strs:
         io_strs[-1] = ""
 
@@ -66,67 +64,47 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     elif e_type == AddOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        print_logic(e, lake_state)
-        print_assign(e)
+        print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
-        # debug printing
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " + " + arg1_str + "\n"
     elif e_type == MulOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        print_logic(e, lake_state)
-        print_assign(e)
+        print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
-        # debug printing
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " * " + arg1_str + "\n"
     elif e_type == ModOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        print_logic(e, lake_state)
-        print_assign(e)
+        print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} % {arg1_str}; \n"
-        # debug printing
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " % " + arg1_str + "\n"
     elif e_type == SelectBitsOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "select_bits(" + arg0_str + ", " + str(e.bits) + ")\n"
+        print_define_and_assign(e, lake_state)
+        comb_strs[cur_scan_idx] += f"{arg0_str}[{e.bits - 1} : 0]; \n"
     elif e_type == IfOp:
         b_str = get_var_val(print_arg(e.b_index, lake_state))
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "if(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
+        print_define_and_assign(e, lake_state)
+        comb_strs[cur_scan_idx] += f"{b_str} ? {arg0_str} : {arg1_str}; \n"
     elif e_type == EqOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " == " + arg1_str + "\n"
+        print_define_and_assign(e, lake_state)
+        comb_strs[cur_scan_idx] += f"{arg0_str} == {arg1_str}; \n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
-        scan_strs[cur_scan_idx] = ""
         io_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         var_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(
-            e.index) + "(lambda " + cur_scan_lambda_var.name
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + ": \n"
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         comb_strs[cur_scan_idx] += tab_str + "end \n"
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + tab_str + "return x" + str(f_res.index)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "\n, " + str(e.width) +")\n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
     if root:
-        keys = sorted(scan_strs.keys())
-        for k in keys:
-            print(scan_strs[k])
+        keys = sorted(io_strs.keys())
 
         for k in keys:
             if k == -1:
@@ -159,8 +137,9 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
     else:
         raise ValueError("unrecognized object: " + str(ast_obj))
 
-def print_let(arg: AST):
-    scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + tab_str + "let x" + str(arg.index) + " = "
+def print_define_and_assign(arg: AST, lake_state: LakeDSLState):
+    print_logic(arg, lake_state)
+    print_assign(arg)
 
 def print_logic(arg: AST, lake_state: LakeDSLState):
     width = get_width(arg.index, lake_state)
