@@ -144,6 +144,7 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
         try:
             return ast_obj.bits
         except AttributeError:
+            print("ERROR (likely fixed once all cases include verilog above)")
             return 1
     
 
