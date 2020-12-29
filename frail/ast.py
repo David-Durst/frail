@@ -48,6 +48,7 @@ def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake
 class Bool(AST):
     val: bool
     producing_seq: int = None
+    width: int = 1
 
 
 def bool_f(val: bool, lake_state: LakeDSLState = default_lake_state) -> Bool:

@@ -1,5 +1,6 @@
 from frail.ast import *
 from frail.debug_printer import *
+from frail.verilog_printer import *
 
 
 def design_b_func(z: Var):
@@ -16,6 +17,7 @@ def design_b_func(z: Var):
 
 design_b = scan_const_f(design_b_func)
 # print_frail(design_b)
+print_verilog(design_b)
 
 x_max = var_f("x_max")
 y_max = var_f("y_max")
