@@ -138,16 +138,16 @@ def print_arg(arg_index: int, lake_state: LakeDSLState):
 
 def get_width(arg_index: int, lake_state: LakeDSLState):
     ast_obj = lake_state.program_map[arg_index]
-    try:
+    if hasattr(ast_obj, "width"):
         return ast_obj.width
-    except AttributeError:
-        try:
-            return ast_obj.bits
-        except AttributeError:
-            print("ERROR (likely fixed once all cases include verilog above)")
-            return 1
-    
-
+    elif hasattr(ast_obj, "bits"):
+        return ast_obj.bits
+    elif isinstance(ast_obj, BinOp):
+        return max(get_width(ast_obj.arg0_index, lake_state), get_width(ast_obj.arg1_index, lake_state))
+    elif isinstance(ast_obj, ScanConstOp):
+        raise ValueError("don't get_width of ScanConstOp, function has no bit width: " + str(ast_obj))
+    else:
+        raise ValueError("unrecognized object: " + str(ast_obj))
 
 def print_let(arg: AST):
     scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + tab_str + "let x" + str(arg.index) + " = "
