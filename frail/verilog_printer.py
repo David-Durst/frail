@@ -11,7 +11,9 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 VarTable: Dict[str, str] = {}
-verilog_header = "module addressor (\n"
+def verilog_header(index: int):
+    return f"module addressor{index} (\n"
+verilog_footer = "endmodule\n"
 
 def get_var_val(key):
     if key in VarTable.keys():
@@ -64,24 +66,28 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     elif e_type == AddOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_logic(e, lake_state)
+        print_assign(e)
+        comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
+        # debug printing
         print_let(e)
-        comb_strs[cur_scan_idx] += f"assign x{e.index} = {arg0_str} + {arg1_str}; \n"
-        
-        width = max(get_width(e.arg0_index, lake_state), get_width(e.arg1_index, lake_state))
-        if width == 1:
-            var_strs[cur_scan_idx] += f"logic x{e.index}; \n"
-        else:
-            var_strs[cur_scan_idx] += f"logic [{width - 1}:0] x{e.index}; \n"
-
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " + " + arg1_str + "\n"
     elif e_type == MulOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_logic(e, lake_state)
+        print_assign(e)
+        comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
+        # debug printing
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " * " + arg1_str + "\n"
     elif e_type == ModOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_logic(e, lake_state)
+        print_assign(e)
+        comb_strs[cur_scan_idx] += f"{arg0_str} % {arg1_str}; \n"
+        # debug printing
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " % " + arg1_str + "\n"
     elif e_type == SelectBitsOp:
@@ -103,7 +109,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         cur_scan_idx = e.index
         scan_strs[cur_scan_idx] = ""
         io_strs[cur_scan_idx] = ""
-        comb_strs[cur_scan_idx] = "always comb begin \n"
+        comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         var_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(
@@ -111,6 +117,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + ": \n"
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
+        comb_strs[cur_scan_idx] += tab_str + "end \n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + tab_str + "return x" + str(f_res.index)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "\n, " + str(e.width) +")\n"
     else:
@@ -122,11 +129,14 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             print(scan_strs[k])
 
         for k in keys:
-            print(verilog_header)
+            if k == -1:
+                continue
+            print(verilog_header(k))
             # get rid of comma after last io signal and end io
             print(io_strs[k][0:-3] + "\n);\n")
             print(var_strs[k])
             print(comb_strs[k])
+            print(verilog_footer)
 
 
 def print_arg(arg_index: int, lake_state: LakeDSLState):
@@ -151,3 +161,14 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
 
 def print_let(arg: AST):
     scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + tab_str + "let x" + str(arg.index) + " = "
+
+def print_logic(arg: AST, lake_state: LakeDSLState):
+    width = get_width(arg.index, lake_state)
+    if width == 1:
+        var_strs[cur_scan_idx] += tab_str + f"logic x{arg.index}; \n"
+    else:
+        var_strs[cur_scan_idx] += tab_str + f"logic [{width - 1}:0] x{arg.index}; \n"
+
+def print_assign(arg: AST):
+    comb_strs[cur_scan_idx] += tab_str + tab_str + f"assign x{arg.index} = "
+
