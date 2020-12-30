@@ -4,8 +4,10 @@ from typing import Set, Dict
 tab_str = "    "
 recurrence_seq_str = "scan_const"
 io_strs: Dict[int, str] = {}
+param_strs: Dict[int, str] = {}
 var_strs: Dict[int, str] = {}
 comb_strs: Dict[int, str] = {}
+seq_strs: Dict[int, str] = {}
 printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
@@ -21,11 +23,13 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global io_strs, var_strs, comb_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
+    global io_strs, param_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
     if root:
         io_strs = {}
+        param_strs = {}
         var_strs ={}
         comb_strs = {}
+        seq_strs = {}
         printed_ops = set()
         cur_scan_idx = -1
 
@@ -38,18 +42,25 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if not io_strs:
         io_strs[-1] = ""
 
-    if not comb_strs:
-        comb_strs[-1] = ""
+    if not param_strs:
+        param_strs[-1] = ""
 
     if not var_strs:
         var_strs[-1] = ""
 
+    if not comb_strs:
+        comb_strs[-1] = ""
+
+    if not seq_strs:
+        seq_strs[-1] = ""
+
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
-            return
-        VarTable[f"x{e.index}"] = str(e.name)
-        io_strs[cur_scan_idx] += tab_str + f"input logic [{e.width - 1}:0] {e.name}, \n"
+            io_strs[cur_scan_idx] += tab_str + f"output logic [{e.width - 1}:0] {e.name}, \n"
+        else:
+            VarTable[f"x{e.index}"] = str(e.name)
+            param_strs[cur_scan_idx] += tab_str + f"input logic [{e.width - 1}:0] {e.name}, \n"
     elif e_type == Int:
         VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == Bool:
@@ -93,27 +104,36 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         comb_strs[cur_scan_idx] += f"{arg0_str} == {arg1_str}; \n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
-        io_strs[cur_scan_idx] = ""
+        io_strs[cur_scan_idx] = tab_str + "input logic clk, \n"
+        param_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         var_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         comb_strs[cur_scan_idx] += tab_str + "end \n"
+        seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
+                                 tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index}\n" + \
+                                 tab_str + "end"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
     if root:
-        keys = sorted(io_strs.keys())
+        keys = sorted(param_strs.keys())
 
         for k in keys:
             if k == -1:
                 continue
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
-            print(io_strs[k][0:-3] + "\n);\n")
+            if (len(param_strs[k]) > 0):
+                print(io_strs[k])
+            else:
+                print(io_strs[k][0:-3])
+            print(param_strs[k][0:-3] + "\n);\n")
             print(var_strs[k])
             print(comb_strs[k])
+            print(seq_strs[k])
             print(verilog_footer)
 
 
