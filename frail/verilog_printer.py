@@ -324,3 +324,4 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
+    print(verilog_footer)
