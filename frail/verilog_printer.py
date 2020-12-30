@@ -101,7 +101,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_define_and_assign(e, lake_state)
-        comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
+        comb_strs[cur_scan_idx] += f"{arg0_str} * {arg1_str}; \n"
     elif e_type == ModOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
