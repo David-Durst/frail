@@ -128,10 +128,9 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         seq_strs[cur_scan_idx] = ""
-        cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
+        cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
-        comb_strs[cur_scan_idx] += tab_str + "end \n"
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
         read_from_output_port = False
         for port in io_ports[cur_scan_idx]:
@@ -147,8 +146,10 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # if don't read from output ports, need to add it here to list of output ports
         if not read_from_output_port:
             width = get_width(f_res.index, lake_state)
-            io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] x{f_res.index}, \n" + io_strs[cur_scan_idx]
-            io_ports[cur_scan_idx].append(ModulePort("x" + str(f_res.index), width, False, False))
+            io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] {cur_scan_lambda_var.name}, \n" + io_strs[cur_scan_idx]
+            comb_strs[cur_scan_idx] += tab_str + tab_str + f"{cur_scan_lambda_var.name} = x{f_res.index}; \n"
+            io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False))
+        comb_strs[cur_scan_idx] += tab_str + "end \n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
