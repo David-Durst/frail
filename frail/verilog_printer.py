@@ -156,7 +156,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         keys = sorted(param_strs.keys())
 
         # IO for top wrapper module
-        top_module_io = [tab_str + "input logic clk,"]
+        top_module_io = []
         # intermediate signal declarations for sources
         # and sinks between module instances
         inter_logics = []
@@ -283,7 +283,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                 top_module_io.append(tab_str + io_str)
             inter_str = port.name
         module_inst_str += tab_str + f".{port.name}({inter_str}),\n"
-    
+
     # wire clk input to module only if clk is an input
     if needs_clock:
         module_inst_str = tab_str + ".clk(clk),\n" + module_inst_str
@@ -312,6 +312,11 @@ def print_top_level_module(top_module_io: list,
                 break
         if add:
             top_module_io.append(inter_to_check[check])
+
+    # sort so that inputs are printed before outputs
+    top_module_io = sorted(top_module_io)
+    # add clk to top level IO as first input
+    top_module_io.insert(0, tab_str + "input logic clk,")
 
     # print top level module io (signal has only one source
     # or sink in instantiated modules)
