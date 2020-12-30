@@ -155,49 +155,25 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if root:
         keys = sorted(param_strs.keys())
 
-        module_inst_strs = []
         top_module_io = []
         inter_logics = []
         inter_assigns = []
+        module_inst_strs = []
+
         for k in keys:
             if k == -1:
                 continue
-            module_inst_str = f"scan{k}inst scan{k} (\n"
-            for port in io_ports[k]:
-                if "output" in port.name or "var" in port.name:
-                    if port.input_dir:
-                        inter_str = port.name.replace("output", "inter")
-                    else:
-                        inter_str = port.name.replace("var", "inter")
-                        if inter_str not in inter_logics:
-                            inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
-                            inter_assigns.append(f"assign {inter_str} = {port.name};")
-                else:
-                    io = "input" if port.input_dir else "output"
-                    io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
-                    if io_str not in top_module_io:
-                        top_module_io.append(tab_str + io_str)
-                    inter_str = port.name
-                module_inst_str += tab_str + f".{port.name}({inter_str}),\n"
+            mod_str_from_ports(io_ports,
+                               top_module_io,
+                               inter_logics,
+                               inter_assigns,
+                               module_inst_strs,
+                               k)
 
-            module_inst_str = module_inst_str[0:-2] + "\n);\n"
-            module_inst_strs.append(module_inst_str)
-
-        print(verilog_header(0, "top") + "\n")
-        for i in range(len(top_module_io)):
-            if i == len(top_module_io) - 1:
-                print(top_module_io[i][:-2] + "\n);\n")
-            else:
-                print(top_module_io[i])
-
-        for logic in inter_logics:
-            print(logic)
-        print()
-        for assign in inter_assigns:
-            print(assign)
-        print()
-        for mod in module_inst_strs:
-            print(mod)
+        print_top_level_module(top_module_io,
+                                inter_logics,
+                                inter_assigns,
+                                module_inst_strs)
             
         for k in keys:
             if k == -1:
@@ -254,5 +230,56 @@ def print_logic(arg: AST, lake_state: LakeDSLState):
 def print_assign(arg: AST):
     comb_strs[cur_scan_idx] += tab_str + tab_str + f"x{arg.index} = "
 
-# def print_top_module(io_ports: Dict[int, List[ModulePort]]):
+def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
+                       top_module_io: list,
+                       inter_logics: list,
+                       inter_assigns: list,
+                       module_inst_strs: list,
+                       k: int):
 
+    module_inst_str = f"scan{k}inst scan{k} (\n"
+    for port in io_ports[k]:
+        # signals that need to be connected between modules
+        if "output" in port.name or "var" in port.name:
+            if port.input_dir:
+                inter_str = port.name.replace("output", "inter")
+            else:
+                inter_str = port.name.replace("var", "inter")
+                # create intermediate signal at top level module to
+                # connect sources and sinks between modules
+                if inter_str not in inter_logics:
+                    inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
+                    inter_assigns.append(f"assign {inter_str} = {port.name};")
+        # signals that go to the top level (no other source / sink available
+        # from other modules)
+        else:
+            io = "input" if port.input_dir else "output"
+            io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
+            if io_str not in top_module_io:
+                top_module_io.append(tab_str + io_str)
+            inter_str = port.name
+        module_inst_str += tab_str + f".{port.name}({inter_str}),\n"
+
+    module_inst_str = module_inst_str[0:-2] + "\n);\n"
+    module_inst_strs.append(module_inst_str)
+
+def print_top_level_module(top_module_io: list,
+                           inter_logics: list,
+                           inter_assigns: list,
+                           module_inst_strs: list):
+
+    print(verilog_header(0, "top") + "\n")
+    for i in range(len(top_module_io)):
+        if i == len(top_module_io) - 1:
+            print(top_module_io[i][:-2] + "\n);\n")
+        else:
+            print(top_module_io[i])
+
+    for logic in inter_logics:
+        print(logic)
+    print()
+    for assign in inter_assigns:
+        print(assign)
+    print()
+    for mod in module_inst_strs:
+        print(mod)
