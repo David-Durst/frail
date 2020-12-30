@@ -1,8 +1,8 @@
 from frail.ast import *
-from typing import Set, Dict
+from typing import Set, Dict, List
 
 @dataclass(eq=True, frozen=True)
-class ModuleParam:
+class ModulePort:
     name: str
     width: int
     requires_clock: bool
@@ -10,10 +10,8 @@ class ModuleParam:
 
 tab_str = "    "
 recurrence_seq_str = "scan_output"
-# inputs from other scans
-input_strs: Dict[int, str] = {}
-# scan variable output
-output_strs: Dict[int, str] = {}
+io_ports: Dict[int, List[ModulePort]] = {}
+io_strs: Dict[int, str] = {}
 # parameters that are fixed every run
 param_strs: Dict[int, str] = {}
 # variables (logic type) used in the combinational block
@@ -37,10 +35,10 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global input_strs, output_strs, param_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
+    global io_ports, io_strs, param_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
     if root:
-        input_strs = {}
-        output_strs = {}
+        io_ports = {}
+        io_strs = {}
         param_strs = {}
         var_strs ={}
         comb_strs = {}
@@ -54,11 +52,11 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     printed_ops.add(e.index)
     e_type = type(e)
     # start with empty string if printing expression not in a scan
-    if not input_strs:
-        input_strs[-1] = ""
+    if not io_ports:
+        io_ports[-1] = []
 
-    if not output_strs:
-        output_strs[-1] = ""
+    if not io_strs:
+        io_strs[-1] = ""
 
     if not param_strs:
         param_strs[-1] = ""
@@ -75,7 +73,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
-            output_strs[cur_scan_idx] += tab_str + f"output logic [{e.width - 1}:0] {e.name}, \n"
+            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False))
         else:
             VarTable[f"x{e.index}"] = str(e.name)
             param_strs[cur_scan_idx] += tab_str + f"input logic [{e.width - 1}:0] {e.name}, \n"
@@ -86,7 +84,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     elif e_type == RecurrenceSeq:
         VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence)
         width = get_width(e.index, lake_state)
-        input_strs[cur_scan_idx] += tab_str + f"input logic [{width - 1}:0] {recurrence_seq_str}{str(e.producing_recurrence)}, \n"
+        io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True))
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         print_verilog(lake_state.program_map[e.producing_recurrence], False, lake_state)
@@ -124,8 +122,8 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         comb_strs[cur_scan_idx] += f"{arg0_str} == {arg1_str}; \n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
-        input_strs[cur_scan_idx] = ""
-        output_strs[cur_scan_idx] = ""
+        io_ports[cur_scan_idx] = []
+        io_strs[cur_scan_idx] = ""
         param_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
@@ -134,13 +132,23 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         comb_strs[cur_scan_idx] += tab_str + "end \n"
-        if output_strs[cur_scan_idx] != "":
-            output_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + output_strs[cur_scan_idx]
-            seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
-                                     tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
-                                     tab_str + "end\n"
-        else:
-            output_strs[cur_scan_idx] = tab_str + f"output logic [{get_width(f_res.index, lake_state) - 1}:0] x{f_res.index}, \n"
+        # if read from output port, write to it in a sequential block. otherwise, just forward to next block
+        read_from_output_port = False
+        for port in io_ports[cur_scan_idx]:
+            if port.input_dir:
+                io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name}\n"
+            else:
+                io_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + \
+                                        tab_str + f"output logic [{port.width - 1}:0] {port.name}\n" + io_strs[cur_scan_idx]
+                seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
+                                         tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
+                                         tab_str + "end\n"
+                read_from_output_port = True
+        # if don't read from output ports, need to add it here to list of output ports
+        if not read_from_output_port:
+            width = get_width(f_res.index, lake_state)
+            io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] x{f_res.index}, \n" + io_strs[cur_scan_idx]
+            io_ports[cur_scan_idx].append(ModulePort("x" + str(f_res.index), width, False, False))
     else:
         assert False, str(e) + "is not a valid frail operator"
 
@@ -152,8 +160,8 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                 continue
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
-            io_strs = output_strs[k] + input_strs[k] + param_strs[k]
-            print(io_strs[0:-3] + "\n);")
+            io_port_str = io_strs[k] + param_strs[k]
+            print(io_port_str[0:-3] + "\n);")
             print(var_strs[k])
             print(comb_strs[k], end='')
 
