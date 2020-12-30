@@ -155,7 +155,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if root:
         keys = sorted(param_strs.keys())
 
-        top_module_io = []
+        top_module_io = [tab_str + "input logic clk,"]
         inter_logics = []
         inter_assigns = []
         module_inst_strs = []
@@ -164,6 +164,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         for k in keys:
             if k == -1:
                 continue
+
             mod_str_from_ports(io_ports,
                                top_module_io,
                                inter_logics,
@@ -241,8 +242,13 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                        inter_to_check: Dict[str, str],
                        k: int):
 
-    module_inst_str = f"scan{k}inst scan{k} (\n"
+    module_inst_str = ""
+    needs_clock = False
     for port in io_ports[k]:
+        # check if module requires clock
+        if port.requires_clock:
+            needs_clock = True
+
         # signals that may need to be connected between modules
         if "output" in port.name or "var" in port.name:
             if port.input_dir:
@@ -266,6 +272,12 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                 top_module_io.append(tab_str + io_str)
             inter_str = port.name
         module_inst_str += tab_str + f".{port.name}({inter_str}),\n"
+    
+    # wire clk input to module only if clk is an input
+    if needs_clock:
+        module_inst_str = tab_str + ".clk(clk),\n" + module_inst_str
+
+    module_inst_str = f"scan{k}inst scan{k} (\n" + module_inst_str
 
     module_inst_str = module_inst_str[0:-2] + "\n);\n"
     module_inst_strs.append(module_inst_str)
