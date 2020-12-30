@@ -132,6 +132,8 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
                                      tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index}\n" + \
                                      tab_str + "end\n"
+        else:
+            output_strs[cur_scan_idx] = tab_str + f"output logic [{get_width(f_res.index, lake_state) - 1}:0] x{f_res.index}, \n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
@@ -190,5 +192,5 @@ def print_logic(arg: AST, lake_state: LakeDSLState):
         var_strs[cur_scan_idx] += tab_str + f"logic [{width - 1}:0] x{arg.index}; \n"
 
 def print_assign(arg: AST):
-    comb_strs[cur_scan_idx] += tab_str + tab_str + f"assign x{arg.index} = "
+    comb_strs[cur_scan_idx] += tab_str + tab_str + f"x{arg.index} = "
 
