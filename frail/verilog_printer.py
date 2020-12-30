@@ -269,15 +269,15 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             if io_str not in top_module_io:
                 top_module_io.append(tab_str + io_str)
             inter_str = port.name
-        module_inst_str += tab_str + f".{port.name}({inter_str}),\n"
+        module_inst_str += tab_str + tab_str + f".{port.name}({inter_str}),\n"
 
     # wire clk input to module only if clk is an input
     if needs_clock:
-        module_inst_str = tab_str + ".clk(clk),\n" + module_inst_str
+        module_inst_str = tab_str + tab_str + ".clk(clk),\n" + module_inst_str
 
-    module_inst_str = f"scan{k}inst scan{k} (\n" + module_inst_str
+    module_inst_str = tab_str + f"scan{k}inst scan{k} (\n" + module_inst_str
 
-    module_inst_str = module_inst_str[0:-2] + "\n);\n"
+    module_inst_str = module_inst_str[0:-2] + f"\n{tab_str});\n"
     module_inst_strs.append(module_inst_str)
 
 def print_top_level_module(top_module_io: list,
@@ -318,7 +318,7 @@ def print_top_level_module(top_module_io: list,
     # print intermediate signals to wire up sources
     # sinks between module instances
     for logic in inter_logics:
-        print(logic)
+        print(tab_str + logic)
     print()
 
     # print module instances
