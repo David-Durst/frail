@@ -73,9 +73,9 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             VarTable[f"x{e.index}"] = str(e.name)
             param_strs[cur_scan_idx] += tab_str + f"input logic [{e.width - 1}:0] {e.name}, \n"
     elif e_type == Int:
-        VarTable[f"x{e.index}"] = str(e.val)
+        VarTable[f"x{e.index}"] = str(e.width) + "'d" + str(e.val)
     elif e_type == Bool:
-        VarTable[f"x{e.index}"] = str(e.val)
+        VarTable[f"x{e.index}"] = "1'b1" if e.val else "1'b0"
     elif e_type == RecurrenceSeq:
         VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence)
         width = get_width(e.index, lake_state)
