@@ -2,18 +2,25 @@ from frail.ast import *
 from typing import Set, Dict
 
 tab_str = "    "
-recurrence_seq_str = "scan_const"
-io_strs: Dict[int, str] = {}
+recurrence_seq_str = "scan_output"
+# inputs from other scans
+input_strs: Dict[int, str] = {}
+# scan variable output
+output_strs: Dict[int, str] = {}
+# parameters that are fixed every run
 param_strs: Dict[int, str] = {}
+# variables (logic type) used in the combinational block
 var_strs: Dict[int, str] = {}
+# combinational block
 comb_strs: Dict[int, str] = {}
+# sequential block (where the scan state is updated each clock)
 seq_strs: Dict[int, str] = {}
 printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 VarTable: Dict[str, str] = {}
 def verilog_header(index: int):
-    return f"module addressor{index} (\n"
+    return f"module scan{index} (\n"
 verilog_footer = "endmodule\n"
 
 def get_var_val(key):
@@ -23,9 +30,10 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global io_strs, param_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
+    global input_strs, output_strs, param_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
     if root:
-        io_strs = {}
+        input_strs = {}
+        output_strs = {}
         param_strs = {}
         var_strs ={}
         comb_strs = {}
@@ -39,8 +47,11 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     printed_ops.add(e.index)
     e_type = type(e)
     # start with empty string if printing expression not in a scan
-    if not io_strs:
-        io_strs[-1] = ""
+    if not input_strs:
+        input_strs[-1] = ""
+
+    if not output_strs:
+        output_strs[-1] = ""
 
     if not param_strs:
         param_strs[-1] = ""
@@ -57,7 +68,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
-            io_strs[cur_scan_idx] += tab_str + f"output logic [{e.width - 1}:0] {e.name}, \n"
+            output_strs[cur_scan_idx] += tab_str + f"output logic [{e.width - 1}:0] {e.name}, \n"
         else:
             VarTable[f"x{e.index}"] = str(e.name)
             param_strs[cur_scan_idx] += tab_str + f"input logic [{e.width - 1}:0] {e.name}, \n"
@@ -66,7 +77,9 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     elif e_type == Bool:
         VarTable[f"x{e.index}"] = str(e.val)
     elif e_type == RecurrenceSeq:
-        VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence) + "[i]"
+        VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence)
+        width = get_width(e.index, lake_state)
+        input_strs[cur_scan_idx] += tab_str + f"input logic [{width - 1}:0] {recurrence_seq_str}{str(e.producing_recurrence)}, \n"
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         print_verilog(lake_state.program_map[e.producing_recurrence], False, lake_state)
@@ -104,17 +117,21 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         comb_strs[cur_scan_idx] += f"{arg0_str} == {arg1_str}; \n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
-        io_strs[cur_scan_idx] = tab_str + "input logic clk, \n"
+        input_strs[cur_scan_idx] = ""
+        output_strs[cur_scan_idx] = ""
         param_strs[cur_scan_idx] = ""
-        comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         var_strs[cur_scan_idx] = ""
+        comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
+        seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx))
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         comb_strs[cur_scan_idx] += tab_str + "end \n"
-        seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
-                                 tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index}\n" + \
-                                 tab_str + "end"
+        if output_strs[cur_scan_idx] != "":
+            output_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + output_strs[cur_scan_idx]
+            seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
+                                     tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index}\n" + \
+                                     tab_str + "end\n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
@@ -126,14 +143,16 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                 continue
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
-            if (len(param_strs[k]) > 0):
-                print(io_strs[k])
-            else:
-                print(io_strs[k][0:-3])
-            print(param_strs[k][0:-3] + "\n);\n")
+            io_strs = output_strs[k] + input_strs[k] + param_strs[k]
+            print(io_strs[0:-3] + "\n);\n")
             print(var_strs[k])
-            print(comb_strs[k])
-            print(seq_strs[k])
+            print(comb_strs[k], end='')
+
+            # add a line between combinational and sequential logic blocks
+            if comb_strs[k] != "" and seq_strs[k] != "":
+                print()
+
+            print(seq_strs[k], end='')
             print(verilog_footer)
 
 
@@ -153,7 +172,9 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
     elif isinstance(ast_obj, BinOp):
         return max(get_width(ast_obj.arg0_index, lake_state), get_width(ast_obj.arg1_index, lake_state))
     elif isinstance(ast_obj, ScanConstOp):
-        raise ValueError("don't get_width of ScanConstOp, function has no bit width: " + str(ast_obj))
+        return ast_obj.width
+    elif isinstance(ast_obj, RecurrenceSeq):
+        return get_width(ast_obj.producing_recurrence, lake_state)
     else:
         raise ValueError("unrecognized object: " + str(ast_obj))
 
