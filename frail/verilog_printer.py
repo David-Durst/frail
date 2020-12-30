@@ -7,13 +7,12 @@ class ModulePort:
     width: int
     requires_clock: bool
     input_dir: bool
+    input_from_other_scan: bool
 
 tab_str = "    "
 recurrence_seq_str = "scan_output_"
 io_ports: Dict[int, List[ModulePort]] = {}
 io_strs: Dict[int, str] = {}
-# parameters that are fixed every run
-param_strs: Dict[int, str] = {}
 # variables (logic type) used in the combinational block
 var_strs: Dict[int, str] = {}
 # combinational block
@@ -35,11 +34,10 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global io_ports, io_strs, param_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
+    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
     if root:
         io_ports = {}
         io_strs = {}
-        param_strs = {}
         var_strs ={}
         comb_strs = {}
         seq_strs = {}
@@ -58,9 +56,6 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if not io_strs:
         io_strs[-1] = ""
 
-    if not param_strs:
-        param_strs[-1] = ""
-
     if not var_strs:
         var_strs[-1] = ""
 
@@ -73,10 +68,10 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
-            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False))
+            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
         else:
             VarTable[f"x{e.index}"] = str(e.name)
-            param_strs[cur_scan_idx] += tab_str + f"input logic [{e.width - 1}:0] {e.name}, \n"
+            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
     elif e_type == Int:
         VarTable[f"x{e.index}"] = str(e.width) + "'d" + str(e.val)
     elif e_type == Bool:
@@ -84,7 +79,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     elif e_type == RecurrenceSeq:
         VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence)
         width = get_width(e.index, lake_state)
-        io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True))
+        io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True))
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         print_verilog(lake_state.program_map[e.producing_recurrence], False, lake_state)
@@ -124,7 +119,6 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         cur_scan_idx = e.index
         io_ports[cur_scan_idx] = []
         io_strs[cur_scan_idx] = ""
-        param_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         seq_strs[cur_scan_idx] = ""
@@ -148,13 +142,13 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             width = get_width(f_res.index, lake_state)
             io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] {cur_scan_lambda_var.name}, \n" + io_strs[cur_scan_idx]
             comb_strs[cur_scan_idx] += tab_str + tab_str + f"{cur_scan_lambda_var.name} = x{f_res.index}; \n"
-            io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False))
+            io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False, False))
         comb_strs[cur_scan_idx] += tab_str + "end \n"
     else:
         assert False, str(e) + "is not a valid frail operator"
 
     if root:
-        keys = sorted(param_strs.keys())
+        keys = sorted(comb_strs.keys())
 
         # IO for top wrapper module
         top_module_io = []
@@ -197,8 +191,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
 
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
-            io_port_str = io_strs[k] + param_strs[k][0:-3]
-            print(io_port_str + "\n);")
+            print(io_strs[k] + "\n);")
             print(var_strs[k])
             print(comb_strs[k], end='')
 
@@ -262,21 +255,21 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             needs_clock = True
 
         # signals that may need to be connected between modules
-        if "output" in port.name or "var" in port.name:
-            if port.input_dir:
-                inter_str = port.name.replace("output", "inter")
-                inter_to_check[inter_str] = tab_str + f"input logic [{port.width - 1}:0] {inter_str},"
-            else:
-                inter_str = port.name.replace("var", "inter")
-                # create intermediate signal at top level module to
-                #  connect sources and sinks between modules
-                # these are output signals, so safe to create these
-                #  intermediate signals
-                if inter_str not in inter_logics:
-                    inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
-                    inter_assigns.append(f"assign {inter_str} = {port.name};")
-        # signals that go to the top level (no other source / sink available
-        # from other modules)
+        # output signals need to be stored, as later scans can depend on them
+        if not port.input_dir:
+            inter_str = port.name.replace("var", "inter")
+            # create intermediate signal at top level module to
+            #  connect sources and sinks between modules
+            # these are output signals, so safe to create these
+            #  intermediate signals
+            if inter_str not in inter_logics:
+                inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
+                inter_assigns.append(f"assign {inter_str} = {port.name};")
+        # input signals that are from other scans will need to be wired up
+        elif port.input_from_other_scan and port.input_dir:
+            inter_str = port.name.replace("output", "inter")
+            inter_to_check[inter_str] = tab_str + f"input logic [{port.width - 1}:0] {inter_str},"
+        # signals that go to the top level as inputs that have no source scan
         else:
             io = "input" if port.input_dir else "output"
             io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
