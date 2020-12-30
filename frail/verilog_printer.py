@@ -155,10 +155,21 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if root:
         keys = sorted(param_strs.keys())
 
+        # IO for top wrapper module
         top_module_io = [tab_str + "input logic clk,"]
+        # intermediate signal declarations for sources
+        # and sinks between module instances
         inter_logics = []
+        # assigning intermediate signals from sources
+        # from module instances
         inter_assigns = []
+        # strings instantiating modules and wiring up
+        # module IO
         module_inst_strs = []
+        # signals that are inputs to modules that need
+        # to be later checked to determine if source
+        # comes from another module instantiation or
+        # needs to come from top level IO
         inter_to_check = {}
 
         for k in keys:
