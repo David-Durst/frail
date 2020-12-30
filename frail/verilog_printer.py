@@ -20,7 +20,7 @@ cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 VarTable: Dict[str, str] = {}
 def verilog_header(index: int):
-    return f"module scan{index} (\n"
+    return f"module scan{index} ("
 verilog_footer = "endmodule\n"
 
 def get_var_val(key):
@@ -144,7 +144,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
             io_strs = output_strs[k] + input_strs[k] + param_strs[k]
-            print(io_strs[0:-3] + "\n);\n")
+            print(io_strs[0:-3] + "\n);")
             print(var_strs[k])
             print(comb_strs[k], end='')
 
