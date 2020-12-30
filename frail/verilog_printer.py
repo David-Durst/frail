@@ -22,6 +22,7 @@ seq_strs: Dict[int, str] = {}
 printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
+output_scan_index: int = -1
 VarTable: Dict[str, str] = {}
 def verilog_header(index: int, name: str="scan"):
     return f"module {name}{index} ("
@@ -34,7 +35,7 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
-    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, cur_scan_lambda_var, VarTable
+    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
     if root:
         io_ports = {}
         io_strs = {}
@@ -43,6 +44,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         seq_strs = {}
         printed_ops = set()
         cur_scan_idx = -1
+        output_scan_index = -1
 
     if e.index in printed_ops:
         return
@@ -116,6 +118,8 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} == {arg1_str}; \n"
     elif e_type == ScanConstOp:
+        if output_scan_index == -1:
+            output_scan_index = e.index
         cur_scan_idx = e.index
         io_ports[cur_scan_idx] = []
         io_strs[cur_scan_idx] = ""
@@ -176,9 +180,10 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                                k)
 
         print_top_level_module(top_module_io,
-                                inter_logics,
-                                module_inst_strs,
-                                inter_to_check)
+                               inter_logics,
+                               module_inst_strs,
+                               inter_to_check,
+                               lake_state)
 
         for k in keys:
             if k == -1:
@@ -283,7 +288,9 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
 def print_top_level_module(top_module_io: list,
                            inter_logics: list,
                            module_inst_strs: list,
-                           inter_to_check: Dict[str, str]):
+                           inter_to_check: Dict[str, str],
+                           lake_state: LakeDSLState):
+    global output_scan_index
 
     print(verilog_header(0, "top") + "\n")
 
@@ -308,12 +315,9 @@ def print_top_level_module(top_module_io: list,
     # or sink in instantiated modules)
     top_io_str = ""
     for i in range(len(top_module_io)):
-        if i == len(top_module_io) - 1:
-            # get rid of last io signal's comma after signal
-            top_io_str += top_module_io[i][:-1] + "\n);\n"
-        else:
-            top_io_str += top_module_io[i] + "\n"
-    print(top_io_str)
+        top_io_str += top_module_io[i] + "\n"
+    top_io_str += tab_str + f"output logic [{lake_state.program_map[output_scan_index].width - 1}:0] addr\n"
+    print(top_io_str + ");\n")
 
     # print intermediate signals to wire up sources
     # sinks between module instances
@@ -324,4 +328,5 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
+    print(tab_str + f"assign addr = scan_inter_{output_scan_index};\n")
     print(verilog_footer)
