@@ -9,7 +9,7 @@ class ModulePort:
     input_dir: bool
 
 tab_str = "    "
-recurrence_seq_str = "scan_output"
+recurrence_seq_str = "scan_output_"
 io_ports: Dict[int, List[ModulePort]] = {}
 io_strs: Dict[int, str] = {}
 # parameters that are fixed every run
@@ -24,8 +24,8 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 VarTable: Dict[str, str] = {}
-def verilog_header(index: int):
-    return f"module scan{index} ("
+def verilog_header(index: int, name: str="scan"):
+    return f"module {name}{index} ("
 verilog_footer = "endmodule\n"
 
 def get_var_val(key):
@@ -155,9 +155,54 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if root:
         keys = sorted(param_strs.keys())
 
+        module_inst_strs = []
+        top_module_io = []
+        inter_logics = []
+        inter_assigns = []
         for k in keys:
             if k == -1:
                 continue
+            module_inst_str = f"scan{k}inst scan{k} (\n"
+            for port in io_ports[k]:
+                if "output" in port.name or "var" in port.name:
+                    if port.input_dir:
+                        inter_str = port.name.replace("output", "inter")
+                    else:
+                        inter_str = port.name.replace("var", "inter")
+                        if inter_str not in inter_logics:
+                            inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
+                            inter_assigns.append(f"assign {inter_str} = {port.name};")
+                else:
+                    io = "input" if port.input_dir else "output"
+                    io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
+                    if io_str not in top_module_io:
+                        top_module_io.append(tab_str + io_str)
+                    inter_str = port.name
+                module_inst_str += tab_str + f".{port.name}({inter_str}),\n"
+
+            module_inst_str = module_inst_str[0:-2] + "\n);\n"
+            module_inst_strs.append(module_inst_str)
+
+        print(verilog_header(0, "top") + "\n")
+        for i in range(len(top_module_io)):
+            if i == len(top_module_io) - 1:
+                print(top_module_io[i][:-2] + "\n);\n")
+            else:
+                print(top_module_io[i])
+
+        for logic in inter_logics:
+            print(logic)
+        print()
+        for assign in inter_assigns:
+            print(assign)
+        print()
+        for mod in module_inst_strs:
+            print(mod)
+            
+        for k in keys:
+            if k == -1:
+                continue
+
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
             io_port_str = io_strs[k] + param_strs[k]
@@ -208,4 +253,6 @@ def print_logic(arg: AST, lake_state: LakeDSLState):
 
 def print_assign(arg: AST):
     comb_strs[cur_scan_idx] += tab_str + tab_str + f"x{arg.index} = "
+
+# def print_top_module(io_ports: Dict[int, List[ModulePort]]):
 
