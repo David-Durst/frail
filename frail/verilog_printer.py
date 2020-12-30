@@ -155,9 +155,6 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # intermediate signal declarations for sources
         # and sinks between module instances
         inter_logics = []
-        # assigning intermediate signals from sources
-        # from module instances
-        inter_assigns = []
         # strings instantiating modules and wiring up
         # module IO
         module_inst_strs = []
@@ -174,14 +171,12 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             mod_str_from_ports(io_ports,
                                top_module_io,
                                inter_logics,
-                               inter_assigns,
                                module_inst_strs,
                                inter_to_check,
                                k)
 
         print_top_level_module(top_module_io,
                                 inter_logics,
-                                inter_assigns,
                                 module_inst_strs,
                                 inter_to_check)
 
@@ -242,7 +237,6 @@ def print_assign(arg: AST):
 def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                        top_module_io: list,
                        inter_logics: list,
-                       inter_assigns: list,
                        module_inst_strs: list,
                        inter_to_check: Dict[str, str],
                        k: int):
@@ -264,7 +258,6 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             #  intermediate signals
             if inter_str not in inter_logics:
                 inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
-                inter_assigns.append(f"assign {inter_str} = {port.name};")
         # input signals that are from other scans will need to be wired up
         elif port.input_from_other_scan and port.input_dir:
             inter_str = port.name.replace("output", "inter")
@@ -289,7 +282,6 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
 
 def print_top_level_module(top_module_io: list,
                            inter_logics: list,
-                           inter_assigns: list,
                            module_inst_strs: list,
                            inter_to_check: Dict[str, str]):
 
@@ -327,11 +319,6 @@ def print_top_level_module(top_module_io: list,
     # sinks between module instances
     for logic in inter_logics:
         print(logic)
-    print()
-
-    # assign intermediate signals to sources from modules
-    for assign in inter_assigns:
-        print(assign)
     print()
 
     # print module instances
