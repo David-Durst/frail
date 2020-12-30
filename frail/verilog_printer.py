@@ -1,6 +1,13 @@
 from frail.ast import *
 from typing import Set, Dict
 
+@dataclass(eq=True, frozen=True)
+class ModuleParam:
+    name: str
+    width: int
+    requires_clock: bool
+    input_dir: bool
+
 tab_str = "    "
 recurrence_seq_str = "scan_output"
 # inputs from other scans
@@ -130,7 +137,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         if output_strs[cur_scan_idx] != "":
             output_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + output_strs[cur_scan_idx]
             seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
-                                     tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index}\n" + \
+                                     tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
                                      tab_str + "end\n"
         else:
             output_strs[cur_scan_idx] = tab_str + f"output logic [{get_width(f_res.index, lake_state) - 1}:0] x{f_res.index}, \n"
