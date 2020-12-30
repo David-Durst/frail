@@ -136,10 +136,10 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         read_from_output_port = False
         for port in io_ports[cur_scan_idx]:
             if port.input_dir:
-                io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name}\n"
+                io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
             else:
                 io_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + \
-                                        tab_str + f"output logic [{port.width - 1}:0] {port.name}\n" + io_strs[cur_scan_idx]
+                                        tab_str + f"output logic [{port.width - 1}:0] {port.name},\n" + io_strs[cur_scan_idx]
                 seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
                                          tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
                                          tab_str + "end\n"
@@ -174,15 +174,15 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                                 inter_logics,
                                 inter_assigns,
                                 module_inst_strs)
-            
+
         for k in keys:
             if k == -1:
                 continue
 
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
-            io_port_str = io_strs[k] + param_strs[k]
-            print(io_port_str[0:-3] + "\n);")
+            io_port_str = io_strs[k] + param_strs[k][0:-3]
+            print(io_port_str + "\n);")
             print(var_strs[k])
             print(comb_strs[k], end='')
 
@@ -269,17 +269,26 @@ def print_top_level_module(top_module_io: list,
                            module_inst_strs: list):
 
     print(verilog_header(0, "top") + "\n")
+
+    # print top level module io (signal has only one source
+    # or sink in instantiated modules)
     for i in range(len(top_module_io)):
         if i == len(top_module_io) - 1:
             print(top_module_io[i][:-2] + "\n);\n")
         else:
             print(top_module_io[i])
 
+    # print intermediate signals to wire up sources
+    # sinks between module instances
     for logic in inter_logics:
         print(logic)
     print()
+
+    # assign intermediate signals to sources from modules
     for assign in inter_assigns:
         print(assign)
     print()
+
+    # print module instances
     for mod in module_inst_strs:
         print(mod)
