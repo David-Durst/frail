@@ -159,6 +159,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         inter_logics = []
         inter_assigns = []
         module_inst_strs = []
+        inter_to_check = {}
 
         for k in keys:
             if k == -1:
@@ -168,12 +169,14 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                                inter_logics,
                                inter_assigns,
                                module_inst_strs,
+                               inter_to_check,
                                k)
 
         print_top_level_module(top_module_io,
                                 inter_logics,
                                 inter_assigns,
-                                module_inst_strs)
+                                module_inst_strs,
+                                inter_to_check)
 
         for k in keys:
             if k == -1:
@@ -235,18 +238,22 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                        inter_logics: list,
                        inter_assigns: list,
                        module_inst_strs: list,
+                       inter_to_check: Dict[str, str],
                        k: int):
 
     module_inst_str = f"scan{k}inst scan{k} (\n"
     for port in io_ports[k]:
-        # signals that need to be connected between modules
+        # signals that may need to be connected between modules
         if "output" in port.name or "var" in port.name:
             if port.input_dir:
                 inter_str = port.name.replace("output", "inter")
+                inter_to_check[inter_str] = tab_str + f"input logic [{port.width - 1}:0] {inter_str},"
             else:
                 inter_str = port.name.replace("var", "inter")
                 # create intermediate signal at top level module to
-                # connect sources and sinks between modules
+                #  connect sources and sinks between modules
+                # these are output signals, so safe to create these
+                #  intermediate signals
                 if inter_str not in inter_logics:
                     inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
                     inter_assigns.append(f"assign {inter_str} = {port.name};")
@@ -266,17 +273,33 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
 def print_top_level_module(top_module_io: list,
                            inter_logics: list,
                            inter_assigns: list,
-                           module_inst_strs: list):
+                           module_inst_strs: list,
+                           inter_to_check: Dict[str, str]):
 
     print(verilog_header(0, "top") + "\n")
 
+    for check in inter_to_check.keys():
+        add = True
+        for logic in inter_logics:
+            # check if this intermediate signal is has a source
+            # from one of the module instances (if not, add
+            # to top level i/o)
+            if logic[0:-1] in inter_to_check[check]:
+                add = False
+                break
+        if add:
+            top_module_io.append(inter_to_check[check])
+
     # print top level module io (signal has only one source
     # or sink in instantiated modules)
+    top_io_str = ""
     for i in range(len(top_module_io)):
         if i == len(top_module_io) - 1:
-            print(top_module_io[i][:-2] + "\n);\n")
+            # get rid of last io signal's comma after signal
+            top_io_str += top_module_io[i][:-1] + "\n);\n"
         else:
-            print(top_module_io[i])
+            top_io_str += top_module_io[i] + "\n"
+    print(top_io_str)
 
     # print intermediate signals to wire up sources
     # sinks between module instances
