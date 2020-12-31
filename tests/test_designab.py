@@ -3,7 +3,12 @@ import fault
 import time
 import tempfile
 import os
-design_a_dut = m.define_from_verilog_file("/home/skavya/frail/design_a.v", target_modules=["design_a"], type_map={"clk": m.In(m.Clock)})[0]
+
+
+frail_dir = os.getenv("FRAIL_DIR")
+assert frail_dir is not None, "Please set FRAIL_DIR env var to path to frail."
+
+design_a_dut = m.define_from_verilog_file(f"{frail_dir}/verilog/design_a.v", target_modules=["design_a"], type_map={"clk": m.In(m.Clock)})[0]
 print(f"Imported as magma circuit: {design_a_dut}")
 
 tester = fault.Tester(design_a_dut, design_a_dut.clk)
