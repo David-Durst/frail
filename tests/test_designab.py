@@ -2,12 +2,13 @@ import magma as m
 import fault
 import time
 import tempfile
+import shutil
 import os
+import pathlib
 
 
 def test_addr_design_a():
-    frail_dir = os.getenv("FRAIL_DIR")
-    assert frail_dir is not None, "Please set FRAIL_DIR env var to path to frail."
+    frail_dir = pathlib.Path(__file__).parent.parent.absolute()
 
     design_a_dut = m.define_from_verilog_file(
         f"{frail_dir}/verilog/design_a.v",
@@ -35,11 +36,8 @@ def test_addr_design_a():
         tester.eval()
 
     with tempfile.TemporaryDirectory() as tempdir:
-        tempdir = "design_a"
-        tester.compile_and_run(target="verilator",
-                               skip_compile=True,
-                               directory=tempdir,
-                               flags=["-Wno-fatal", "--trace"])
+        shutil.copy(f"{frail_dir}/verilog/design_a.v", tempdir)
+        tester.compile_and_run(target="verilator", directory=tempdir, skip_compile=True)
 
 
 if __name__ == "__main__":
