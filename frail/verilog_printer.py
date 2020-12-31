@@ -25,7 +25,10 @@ cur_scan_lambda_var: Var = None
 output_scan_index: int = -1
 VarTable: Dict[str, str] = {}
 def verilog_header(index: int, name: str="scan"):
-    return f"module {name}{index} ("
+    if name == "scan":
+        return f"module {name}{index} ("
+    else:
+        return f"module {name} ("
 verilog_footer = "endmodule\n"
 
 def get_var_val(key):
@@ -34,7 +37,7 @@ def get_var_val(key):
     return key
 
 
-def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state):
+def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state, top_name: str = "top"):
     global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
     if root:
         io_ports = {}
@@ -183,7 +186,8 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                                inter_logics,
                                module_inst_strs,
                                inter_to_check,
-                               lake_state)
+                               lake_state,
+                               top_name)
 
         for k in keys:
             if k == -1:
@@ -280,7 +284,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
     if needs_clock:
         module_inst_str = tab_str + tab_str + ".clk(clk),\n" + module_inst_str
 
-    module_inst_str = tab_str + f"scan{k}inst scan{k} (\n" + module_inst_str
+    module_inst_str = tab_str + f"scan{k} scan{k}inst (\n" + module_inst_str
 
     module_inst_str = module_inst_str[0:-2] + f"\n{tab_str});\n"
     module_inst_strs.append(module_inst_str)
@@ -289,11 +293,11 @@ def print_top_level_module(top_module_io: list,
                            inter_logics: list,
                            module_inst_strs: list,
                            inter_to_check: Dict[str, str],
-                           lake_state: LakeDSLState):
+                           lake_state: LakeDSLState,
+                           top_name: str):
     global output_scan_index
 
-    print(verilog_header(0, "top") + "\n")
-
+    print(verilog_header(0, top_name) + "\n")
     for check in inter_to_check.keys():
         add = True
         for logic in inter_logics:
