@@ -23,13 +23,13 @@ def test_addr_design_a():
     # no need to rst_n or clk_en yet
 
     # config regs
-    tester.circuit.x_max = 2
+    tester.circuit.x_max = 3
     tester.circuit.x_stride = 1
-    tester.circuit.y_max = 3
+    tester.circuit.y_max = 4
     tester.circuit.y_stride = 2
     tester.circuit.offset = 0
 
-    for i in range(15):
+    for i in range(12):
 
         tester.step(2)
 
@@ -37,7 +37,10 @@ def test_addr_design_a():
 
     with tempfile.TemporaryDirectory() as tempdir:
         shutil.copy(f"{frail_dir}/verilog/design_a.v", tempdir)
-        tester.compile_and_run(target="verilator", directory=tempdir, skip_compile=True)
+        tester.compile_and_run(target="verilator",
+                               directory=tempdir,
+                               skip_compile=True,
+                               flags=["-Wno-fatal"])
 
 
 if __name__ == "__main__":
