@@ -26,7 +26,7 @@ design_a_x = scan_const_f(lambda z: mod_f(add_f(z, int_f(1)), x_max))
 
 def design_a_y_func(z: Var):
     x_val = design_a_x.get_seq()
-    add_val = if_f(eq_f(x_val, x_max), int_f(1), int_f(0))
+    add_val = if_f(eq_f(x_val, sub_f(x_max, int_f(1))), int_f(1), int_f(0))
     return mod_f(add_f(z, add_val), y_max)
 
 

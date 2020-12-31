@@ -80,6 +80,15 @@ def add_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -
 
 
 @dataclass(frozen=True)
+class SubOp(BinOp):
+    pass
+
+
+def sub_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> SubOp:
+    return SubOp(lake_state.incr(), arg0.index, arg1.index)
+
+
+@dataclass(frozen=True)
 class MulOp(BinOp):
     pass
 

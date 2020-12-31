@@ -83,20 +83,22 @@ module scan4 (
     input logic [31:0] x_max,
     input logic [31:0] y_max
 );
-    logic x31; 
-    logic [31:0] x34; 
-    logic [31:0] x35; 
+    logic [31:0] x32; 
+    logic x33; 
     logic [31:0] x36; 
+    logic [31:0] x37; 
+    logic [31:0] x38; 
 
     always_comb begin 
-        x31 = scan_output_3 == x_max; 
-        x34 = x31 ? 32'd1 : 32'd0; 
-        x35 = scan_var_4 + x34; 
-        x36 = x35 % y_max; 
+        x32 = x_max - 32'd1; 
+        x33 = scan_output_3 == x32; 
+        x36 = x33 ? 32'd1 : 32'd0; 
+        x37 = scan_var_4 + x36; 
+        x38 = x37 % y_max; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_4 <= x36;
+        scan_var_4 <= x38;
     end
 endmodule
 
