@@ -48,6 +48,7 @@ def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake
 class Bool(AST):
     val: bool
     producing_seq: int = None
+    width: int = 1
 
 
 def bool_f(val: bool, lake_state: LakeDSLState = default_lake_state) -> Bool:
@@ -76,6 +77,15 @@ class AddOp(BinOp):
 
 def add_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> AddOp:
     return AddOp(lake_state.incr(), arg0.index, arg1.index)
+
+
+@dataclass(frozen=True)
+class SubOp(BinOp):
+    pass
+
+
+def sub_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> SubOp:
+    return SubOp(lake_state.incr(), arg0.index, arg1.index)
 
 
 @dataclass(frozen=True)
@@ -118,7 +128,7 @@ def if_f(b: Bool, arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_
 
 @dataclass(frozen=True)
 class EqOp(BinOp):
-    pass
+    width: int = 1
 
 
 def eq_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> EqOp:

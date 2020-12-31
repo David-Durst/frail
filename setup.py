@@ -15,7 +15,8 @@ setup(
         "frail",
     ],
     install_requires=[
-        'pysmt'
+        'pysmt',
+        'fault'
     ],
     python_requires='>=3.8',
     long_description=long_description,
