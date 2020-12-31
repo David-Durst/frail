@@ -66,6 +66,11 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVAddExtend(" + arg0_str + ", " + arg1_str + ")\n"
+    elif e_type == SubOp:
+        arg0_str = print_arg(e.arg0_index, lake_state, name)
+        arg1_str = print_arg(e.arg1_index, lake_state, name)
+        print_let(e)
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "BVSubExtend(" + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == MulOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
