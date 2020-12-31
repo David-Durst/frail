@@ -191,7 +191,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
 
             print(verilog_header(k))
             # get rid of comma after last io signal and end io
-            print(io_strs[k] + "\n);")
+            print(io_strs[k][:-2] + "\n);")
             print(var_strs[k])
             print(comb_strs[k], end='')
 
