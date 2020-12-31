@@ -119,7 +119,7 @@ def if_f(b: Bool, arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_
 
 @dataclass(frozen=True)
 class EqOp(BinOp):
-    pass
+    width: int = 1
 
 
 def eq_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> EqOp:

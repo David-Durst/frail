@@ -49,11 +49,23 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         cur_scan_idx = -1
         output_scan_index = -1
 
+    e_type = type(e)
+
     if e.index in printed_ops:
+        # still need to add op to io_ports for this next module
+        # for signals that are inputs to multiple submodules
+        # so that this signal is printed in Verilog
+        if e_type == Var:
+            if e == cur_scan_lambda_var:
+                io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
+            else:
+                io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
+        elif e_type == RecurrenceSeq:
+            io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True))
         return
 
     printed_ops.add(e.index)
-    e_type = type(e)
+
     # start with empty string if printing expression not in a scan
     if not io_ports:
         io_ports[-1] = []
@@ -74,6 +86,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
             io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
+
         else:
             VarTable[f"x{e.index}"] = str(e.name)
             io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
@@ -226,6 +239,8 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
         return ast_obj.width
     elif isinstance(ast_obj, RecurrenceSeq):
         return get_width(ast_obj.producing_recurrence, lake_state)
+    elif isinstance(ast_obj, EqOp):
+        return ast_obj
     else:
         raise ValueError("unrecognized object: " + str(ast_obj))
 
@@ -275,7 +290,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
         else:
             io = "input" if port.input_dir else "output"
             io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
-            if io_str not in top_module_io:
+            if tab_str + io_str not in top_module_io:
                 top_module_io.append(tab_str + io_str)
             inter_str = port.name
         module_inst_str += tab_str + tab_str + f".{port.name}({inter_str}),\n"
@@ -284,7 +299,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
     if needs_clock:
         module_inst_str = tab_str + tab_str + ".clk(clk),\n" + module_inst_str
 
-    module_inst_str = tab_str + f"scan{k} scan{k}inst (\n" + module_inst_str
+    module_inst_str = tab_str + f"scan{k} scan{k} (\n" + module_inst_str
 
     module_inst_str = module_inst_str[0:-2] + f"\n{tab_str});\n"
     module_inst_strs.append(module_inst_str)
@@ -307,7 +322,7 @@ def print_top_level_module(top_module_io: list,
             if logic[0:-1] in inter_to_check[check]:
                 add = False
                 break
-        if add:
+        if add and inter_to_check[check] not in top_module_io:
             top_module_io.append(inter_to_check[check])
 
     # sort so that inputs are printed before outputs
