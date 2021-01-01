@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(
     name='frail',
-    version='0.0.1',
+    version='0.0.2',
     url='https://github.com/David-Durst/frail',
     license='MIT',
     maintainer='David Durst',
