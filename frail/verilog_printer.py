@@ -156,8 +156,10 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             if port.input_dir:
                 io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
             else:
-                io_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + \
-                                        tab_str + f"output logic [{port.width - 1}:0] {port.name},\n" + io_strs[cur_scan_idx]
+                add_io_str = tab_str + "input logic clk, \n" + \
+                                        tab_str + f"output logic [{port.width - 1}:0] {port.name},\n"
+                if add_io_str not in io_strs[cur_scan_idx]:
+                    io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
                 seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
                                          tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
                                          tab_str + "end\n"
@@ -285,8 +287,9 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             #  connect sources and sinks between modules
             # these are output signals, so safe to create these
             #  intermediate signals
-            if inter_str not in inter_logics:
-                inter_logics.append(f"logic [{port.width - 1}:0] {inter_str};")
+            inter_full_str = f"logic [{port.width - 1}:0] {inter_str};"
+            if inter_full_str not in inter_logics:
+                inter_logics.append(inter_full_str)
         # input signals that are from other scans will need to be wired up
         elif port.input_from_other_scan and port.input_dir:
             inter_str = port.name.replace("output", "inter")
@@ -298,7 +301,9 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             if tab_str + io_str not in top_module_io:
                 top_module_io.append(tab_str + io_str)
             inter_str = port.name
-        module_inst_str += tab_str + tab_str + f".{port.name}({inter_str}),\n"
+        module_port_str = tab_str + tab_str + f".{port.name}({inter_str}),\n"
+        if module_port_str not in module_inst_str:
+            module_inst_str += module_port_str
 
     # wire clk input to module only if clk is an input
     if needs_clock:
@@ -308,6 +313,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
 
     module_inst_str = module_inst_str[0:-2] + f"\n{tab_str});\n"
     module_inst_strs.append(module_inst_str)
+
 
 def print_top_level_module(top_module_io: list,
                            inter_logics: list,
