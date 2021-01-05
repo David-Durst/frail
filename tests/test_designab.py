@@ -10,7 +10,6 @@ import random
 
 from lake.models.addr_gen_model import AddrGenModel
 
-random.seed(0)
 
 @pytest.mark.parametrize("test_rand", [False, True])
 def test_addr_design_a(test_rand, starting_addr=0, strides_0=1, strides_1=2, ranges_0=3, ranges_1=4):
