@@ -57,11 +57,14 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # so that this signal is printed in Verilog
         if e_type == Var:
             if e == cur_scan_lambda_var:
-                io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
+                port = ModulePort(e.name, e.width, True, False, False)
             else:
-                io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
+                port = ModulePort(e.name, e.width, False, True, False)
         elif e_type == RecurrenceSeq:
-            io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True))
+            port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
+        
+        if port not in io_ports[cur_scan_idx]:
+            io_ports[cur_scan_idx].append(port)
         return
 
     printed_ops.add(e.index)
@@ -158,8 +161,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             else:
                 add_io_str = tab_str + "input logic clk, \n" + \
                                         tab_str + f"output logic [{port.width - 1}:0] {port.name},\n"
-                if add_io_str not in io_strs[cur_scan_idx]:
-                    io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
+                io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
                 seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
                                          tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
                                          tab_str + "end\n"
