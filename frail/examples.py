@@ -3,24 +3,24 @@ from frail.debug_printer import *
 from frail.verilog_printer import *
 
 
+x_max = var_f("x_max")
+y_max = var_f("y_max")
 def design_b_func(z: Var):
     x_width = 12
-    z = add_f(z, var_f("x_delta", x_width))
-    z = add_f(z,
-              if_f(eq_f(select_bits_f(z, x_width), int_f(0)),
+    xadd = add_f(z, var_f("x_delta", x_width))
+    yadd = add_f(z,
+              if_f(eq_f(select_bits_f(xadd, x_width), x_max),
                    var_f("y_delta"),
-                   int_f(0)
+                   var_f("x_delta", x_width)
                    )
               )
-    return z
+    return if_f(eq_f(yadd, y_max), int_f(0), yadd)
 
 
 design_b = scan_const_f(design_b_func)
 # print_frail(design_b)
 # print_verilog(design_b)
 
-x_max = var_f("x_max")
-y_max = var_f("y_max")
 design_a_x = scan_const_f(lambda z: mod_f(add_f(z, int_f(1)), x_max))
 # print_frail(design_a_x)
 
