@@ -13,9 +13,9 @@ module design_b (
     scan2 scan2 (
         .clk(clk),
         .scan_var_2(scan_inter_2),
+        .x_stride(x_stride),
         .x_max(x_max),
         .y_stride(y_stride),
-        .x_stride(x_stride),
         .y_max(y_max)
     );
 
