@@ -9,22 +9,31 @@ import pytest
 import random
 
 from lake.models.addr_gen_model import AddrGenModel
+from lake.utils.util import transform_strides_and_ranges
 
 
 @pytest.mark.parametrize("test_rand", [False, True])
-def test_addr_design_a(test_rand, starting_addr=0, strides_0=1, strides_1=2, ranges_0=3, ranges_1=4):
+@pytest.mark.parametrize("design", ["design_a", "design_b"])
+def test_addr_design_a(
+        test_rand,
+        design,
+        starting_addr=0,
+        strides_0=1,
+        strides_1=2,
+        ranges_0=3,
+        ranges_1=4):
 
     if test_rand:
-        starting_addr = random.randint(0, 2**16-1)
-        strides_0 = random.randint(0, 2**16-1)
-        strides_1 = random.randint(0, 2**16-1)
-        ranges_0 = random.randint(0, 2**16-1)
-        ranges_1 = random.randint(0, 2**16-1)
+        starting_addr = random.randint(0, 2**16 - 1)
+        strides_0 = random.randint(0, 2**16 - 1)
+        strides_1 = random.randint(0, 2**16 - 1)
+        ranges_0 = random.randint(0, 2**16 - 1)
+        ranges_1 = random.randint(0, 2**16 - 1)
 
-    print(starting_addr, strides_0, strides_1, ranges_0, ranges_1)
+    # print(starting_addr, strides_0, strides_1, ranges_0, ranges_1)
 
     # set up addressor model
-    model_ag = AddrGenModel(2, 16)
+    model_ag = AddrGenModel(6, 16)
 
     config = {}
     config["starting_addr"] = starting_addr
@@ -40,41 +49,52 @@ def test_addr_design_a(test_rand, starting_addr=0, strides_0=1, strides_1=2, ran
     frail_dir = pathlib.Path(__file__).parent.parent.absolute()
 
     # get Magma circuit from Verilog
-    design_a_dut = m.define_from_verilog_file(
-        f"{frail_dir}/verilog/design_a.v",
-        target_modules=["design_a"],
+    dut = m.define_from_verilog_file(
+        f"{frail_dir}/verilog/{design}.v",
+        target_modules=[design],
         type_map={
             "clk": m.In(
                 m.Clock)})[0]
-    print(f"Imported as magma circuit: {design_a_dut}")
+    print(f"Imported as magma circuit: {dut}")
 
-    tester = fault.Tester(design_a_dut, design_a_dut.clk)
+    tester = fault.Tester(dut, dut.clk)
 
     # no need to rst_n or clk_en yet
 
     # config regs
-    tester.circuit.x_max = ranges_0
-    tester.circuit.x_stride = strides_0
-    tester.circuit.y_max = ranges_1
-    tester.circuit.y_stride = strides_1
-    tester.circuit.offset = starting_addr
+    if design == "design_b":
+        tranges, tstrides = transform_strides_and_ranges(
+            [ranges_0, ranges_1],
+            [strides_0, strides_1],
+            2)
+        tester.circuit.x_max = tranges[0]
+        tester.circuit.x_stride = tstrides[0]
+        tester.circuit.y_max = tranges[1]
+        tester.circuit.y_stride = tstrides[1]
+        tester.circuit.offset = starting_addr
+    else:
+        tester.circuit.x_max = ranges_0
+        tester.circuit.x_stride = strides_0
+        tester.circuit.y_max = ranges_1
+        tester.circuit.y_stride = strides_1
+        tester.circuit.offset = starting_addr
 
     for i in range(12):
-        
+
         tester.eval()
         tester.step(2)
-        tester.circuit.addr.expect(model_ag.get_address())
+        #tester.circuit.addr.expect(model_ag.get_address())
         print(model_ag.get_address())
         model_ag.step()
-        
 
     with tempfile.TemporaryDirectory() as tempdir:
-        shutil.copy(f"{frail_dir}/verilog/design_a.v", tempdir)
+        tempdir = design
+        shutil.copy(f"{frail_dir}/verilog/{design}.v", tempdir)
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
                                skip_compile=True,
-                               flags=["-Wno-fatal"])
+                               flags=["-Wno-fatal", "--trace"])
 
 
 if __name__ == "__main__":
-    test_addr_design_a(True)
+    test_addr_design_a(False, "design_b")

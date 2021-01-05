@@ -7,11 +7,11 @@ x_max = var_f("x_max")
 y_max = var_f("y_max")
 def design_b_func(z: Var):
     x_width = 12
-    xadd = add_f(z, var_f("x_delta", x_width))
+    xadd = add_f(z, var_f("x_stride", x_width))
     yadd = add_f(z,
               if_f(eq_f(select_bits_f(xadd, x_width), x_max),
-                   var_f("y_delta"),
-                   var_f("x_delta", x_width)
+                   var_f("y_stride"),
+                   var_f("x_stride", x_width)
                    )
               )
     return if_f(eq_f(yadd, y_max), int_f(0), yadd)
