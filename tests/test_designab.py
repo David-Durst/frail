@@ -14,7 +14,7 @@ from lake.utils.util import transform_strides_and_ranges
 
 @pytest.mark.parametrize("test_rand", [False, True])
 @pytest.mark.parametrize("design", ["design_a", "design_b"])
-def test_addr_design_a(
+def test_addr_design(
         test_rand,
         design,
         starting_addr=0,
@@ -97,4 +97,4 @@ def test_addr_design_a(
 
 
 if __name__ == "__main__":
-    test_addr_design_a(False, "design_b")
+    test_addr_design(False, "design_b")
