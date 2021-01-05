@@ -156,8 +156,10 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             if port.input_dir:
                 io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
             else:
-                io_strs[cur_scan_idx] = tab_str + "input logic clk, \n" + \
-                                        tab_str + f"output logic [{port.width - 1}:0] {port.name},\n" + io_strs[cur_scan_idx]
+                add_io_str = tab_str + "input logic clk, \n" + \
+                                        tab_str + f"output logic [{port.width - 1}:0] {port.name},\n"
+                if add_io_str not in io_strs[cur_scan_idx]:
+                    io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
                 seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
                                          tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
                                          tab_str + "end\n"
