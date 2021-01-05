@@ -70,12 +70,11 @@ def test_addr_design_a(test_rand, starting_addr=0, strides_0=1, strides_1=2, ran
         
 
     with tempfile.TemporaryDirectory() as tempdir:
-        tempdir="design_a"
         shutil.copy(f"{frail_dir}/verilog/design_a.v", tempdir)
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
                                skip_compile=True,
-                               flags=["-Wno-fatal", "--trace"])
+                               flags=["-Wno-fatal"])
 
 
 if __name__ == "__main__":
