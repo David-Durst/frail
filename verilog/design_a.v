@@ -54,8 +54,9 @@ module design_a (
         .scan_var_8(scan_inter_8)
     );
 
-    assign addr = scan_inter_8;
-
+    always_ff @(posedge clk) begin
+         addr <= scan_inter_8;
+    end
 endmodule
 
 module scan3 (
@@ -153,4 +154,3 @@ module scan8 (
         scan_var_8 = x12; 
     end 
 endmodule
-

@@ -5,11 +5,41 @@ import tempfile
 import shutil
 import os
 import pathlib
+import pytest
+import random
+
+from lake.models.addr_gen_model import AddrGenModel
 
 
-def test_addr_design_a():
+@pytest.mark.parametrize("test_rand", [False, True])
+def test_addr_design_a(test_rand, starting_addr=0, strides_0=1, strides_1=2, ranges_0=3, ranges_1=4):
+
+    if test_rand:
+        starting_addr = random.randint(0, 2**16-1)
+        strides_0 = random.randint(0, 2**16-1)
+        strides_1 = random.randint(0, 2**16-1)
+        ranges_0 = random.randint(0, 2**16-1)
+        ranges_1 = random.randint(0, 2**16-1)
+
+    print(starting_addr, strides_0, strides_1, ranges_0, ranges_1)
+
+    # set up addressor model
+    model_ag = AddrGenModel(2, 16)
+
+    config = {}
+    config["starting_addr"] = starting_addr
+    config["dimensionality"] = 2
+    config["strides_0"] = strides_0
+    config["strides_1"] = strides_1
+    config["ranges_0"] = ranges_0
+    config["ranges_1"] = ranges_1
+
+    model_ag.set_config(config)
+
+    # set up frail design with Verilog
     frail_dir = pathlib.Path(__file__).parent.parent.absolute()
 
+    # get Magma circuit from Verilog
     design_a_dut = m.define_from_verilog_file(
         f"{frail_dir}/verilog/design_a.v",
         target_modules=["design_a"],
@@ -23,26 +53,28 @@ def test_addr_design_a():
     # no need to rst_n or clk_en yet
 
     # config regs
-    tester.circuit.x_max = 3
-    tester.circuit.x_stride = 1
-    tester.circuit.y_max = 4
-    tester.circuit.y_stride = 2
-    tester.circuit.offset = 0
+    tester.circuit.x_max = ranges_0
+    tester.circuit.x_stride = strides_0
+    tester.circuit.y_max = ranges_1
+    tester.circuit.y_stride = strides_1
+    tester.circuit.offset = starting_addr
 
     for i in range(12):
-
-        tester.step(2)
-
+        
         tester.eval()
+        tester.step(2)
+        tester.circuit.addr.expect(model_ag.get_address())
+        print(model_ag.get_address())
+        model_ag.step()
+        
 
     with tempfile.TemporaryDirectory() as tempdir:
-        tempdir="design_a"
         shutil.copy(f"{frail_dir}/verilog/design_a.v", tempdir)
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
                                skip_compile=True,
-                               flags=["-Wno-fatal", "--trace"])
+                               flags=["-Wno-fatal"])
 
 
 if __name__ == "__main__":
-    test_addr_design_a()
+    test_addr_design_a(True)

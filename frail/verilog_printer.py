@@ -352,5 +352,5 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
-    print(tab_str + f"assign addr = scan_inter_{output_scan_index};\n")
+    print(tab_str + f"always_ff @(posedge clk) begin\n{tab_str}{tab_str} addr <= scan_inter_{output_scan_index};\n{tab_str}end")
     print(verilog_footer)
