@@ -306,7 +306,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             add_to_top = tab_str + io_str
             # multiple modules may have the same port, add to top module IO only once
             if add_to_top not in top_module_io:
-                top_module_io.append(tab_str + io_str)
+                top_module_io.append(add_to_top)
             inter_str = port.name
         module_port_str = tab_str + tab_str + f".{port.name}({inter_str}),\n"
         module_inst_str += module_port_str
