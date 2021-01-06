@@ -18,10 +18,10 @@ def test_addr_design(
         test_rand,
         design,
         starting_addr=0,
-        strides_0=1,
-        strides_1=2,
-        ranges_0=3,
-        ranges_1=4):
+        strides_0=15,
+        strides_1=13,
+        ranges_0=12,
+        ranges_1=13):
 
     if test_rand:
         starting_addr = random.randint(0, 2**16 - 1)
@@ -67,7 +67,7 @@ def test_addr_design(
             [ranges_0, ranges_1],
             [strides_0, strides_1],
             2)
-        tester.circuit.x_max = tranges[0]
+        tester.circuit.x_max = tranges[0] + 1
         tester.circuit.x_stride = tstrides[0]
         tester.circuit.y_max = tranges[1]
         tester.circuit.y_stride = tstrides[1]
@@ -84,7 +84,6 @@ def test_addr_design(
         tester.eval()
         tester.step(2)
         tester.circuit.addr.expect(model_ag.get_address())
-        print(model_ag.get_address())
         model_ag.step()
 
     with tempfile.TemporaryDirectory() as tempdir:
@@ -97,4 +96,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "design_b", 0, 15, 20, 12, 13)
+    test_addr_design(False, "design_b")#, 0, 15, 20, 12, 15)
