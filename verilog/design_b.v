@@ -19,8 +19,8 @@ module design_b (
         .scan_var_4(scan_inter_4),
         .scan_output_12(scan_inter_12),
         .x_max(x_max),
-        .x_stride(x_stride),
-        .y_stride(y_stride)
+        .y_stride(y_stride),
+        .x_stride(x_stride)
     );
 
     scan12 scan12 (
@@ -47,27 +47,25 @@ module scan4 (
     input logic [31:0] y_max,
     input logic [31:0] scan_output_12,
     input logic [31:0] x_max,
-    input logic [15:0] x_stride,
-    input logic [31:0] y_stride
+    input logic [31:0] y_stride,
+    input logic [15:0] x_stride
 );
-    logic x21; 
+    logic x20; 
     logic x17; 
     logic [31:0] x18; 
     logic [31:0] x19; 
-    logic [31:0] x20; 
-    logic [31:0] x23; 
+    logic [31:0] x22; 
 
     always_comb begin 
-        x21 = scan_output_14 == y_max; 
-        x17 = scan_output_12 == x_max; 
-        x18 = x_stride + y_stride; 
-        x19 = x17 ? x18 : x_stride; 
-        x20 = scan_var_4 + x19; 
-        x23 = x21 ? 32'd0 : x20; 
+        x20 = scan_output_14 == y_max; 
+        x17 = scan_output_12 == x_max + 1; 
+        x18 = x17 ? y_stride : x_stride; 
+        x19 = scan_var_4 + x18; 
+        x22 = x20 ? 32'd0 : x19; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_4 <= x23;
+        scan_var_4 <= x22;
     end
 endmodule
 
@@ -75,14 +73,14 @@ module scan12 (
     input logic clk, 
     output logic [31:0] scan_var_12
 );
-    logic [31:0] x31; 
+    logic [31:0] x32; 
 
     always_comb begin 
-        x31 = scan_var_12 + 32'd1; 
+        x32 = scan_var_12 + 32'd1; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_12 <= x31;
+        scan_var_12 <= x32;
     end
 endmodule
 
@@ -92,18 +90,20 @@ module scan14 (
     input logic [31:0] scan_output_12,
     input logic [31:0] x_max
 );
-    logic x25; 
-    logic [31:0] x27; 
+    logic [31:0] x25; 
+    logic x26; 
     logic [31:0] x28; 
+    logic [31:0] x29; 
 
     always_comb begin 
-        x25 = scan_output_12 == x_max; 
-        x27 = scan_var_14 + 32'd1; 
-        x28 = x25 ? x27 : scan_var_14; 
+        x25 = x_max + 32'd1; 
+        x26 = scan_output_12 == x25; 
+        x28 = scan_var_14 + 32'd1; 
+        x29 = x26 ? x28 : scan_var_14; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_14 <= x28;
+        scan_var_14 <= x29;
     end
 endmodule
 
