@@ -23,7 +23,8 @@ def design_b_func(z: Var):
     return if_f(eq_f(y_count, y_max), int_f(0), yadd)
 
 
-design_b = scan_const_f(design_b_func)
+design_b_before_offset = scan_const_f(design_b_func)
+design_b = scan_const_f(lambda z: add_f(design_b_before_offset.get_seq(), var_f("offset")))
 # print_frail(design_b)
 # print_verilog(design_b)
 
