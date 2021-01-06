@@ -92,6 +92,7 @@ def test_addr_design(
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
                                skip_compile=True,
+                               #flags=["-Wno-fatal"])
                                flags=["-Wno-fatal", "--trace"])
 
 
