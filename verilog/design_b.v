@@ -30,7 +30,6 @@ module scan2 (
     input logic [11:0] x_delta,
     input logic [31:0] x_max,
     input logic [31:0] y_delta,
-    input logic [11:0] x_delta,
     input logic [31:0] y_max
 );
     logic [31:0] x11; 
@@ -55,3 +54,4 @@ module scan2 (
         scan_var_2 <= x20;
     end
 endmodule
+

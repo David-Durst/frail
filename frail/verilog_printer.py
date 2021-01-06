@@ -55,13 +55,18 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
         # so that this signal is printed in Verilog
+        add_port = None
         if e_type == Var:
             if e == cur_scan_lambda_var:
-                io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
+                add_port = ModulePort(e.name, e.width, True, False, False)
             else:
-                io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
+                add_port = ModulePort(e.name, e.width, False, True, False)
         elif e_type == RecurrenceSeq:
-            io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True))
+            add_port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
+
+        if add_port is not None and add_port not in io_ports[cur_scan_idx]:
+            io_ports[cur_scan_idx].append(add_port)
+            
         return
 
     printed_ops.add(e.index)
@@ -85,11 +90,12 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
-            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
-
+            add_port = ModulePort(e.name, e.width, True, False, False)
         else:
             VarTable[f"x{e.index}"] = str(e.name)
-            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
+            add_port = ModulePort(e.name, e.width, False, True, False)
+        if add_port not in io_ports[cur_scan_idx]:
+            io_ports[cur_scan_idx].append(add_port)
     elif e_type == Int:
         VarTable[f"x{e.index}"] = str(e.width) + "'d" + str(e.val)
     elif e_type == Bool:
@@ -158,8 +164,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             else:
                 add_io_str = tab_str + "input logic clk, \n" + \
                                         tab_str + f"output logic [{port.width - 1}:0] {port.name},\n"
-                if add_io_str not in io_strs[cur_scan_idx]:
-                    io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
+                io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
                 seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
                                          tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
                                          tab_str + "end\n"
@@ -274,6 +279,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
 
     module_inst_str = ""
     needs_clock = False
+    
     for port in io_ports[k]:
         # check if module requires clock
         if port.requires_clock:
@@ -288,8 +294,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             # these are output signals, so safe to create these
             #  intermediate signals
             inter_full_str = f"logic [{port.width - 1}:0] {inter_str};"
-            if inter_full_str not in inter_logics:
-                inter_logics.append(inter_full_str)
+            inter_logics.append(inter_full_str)
         # input signals that are from other scans will need to be wired up
         elif port.input_from_other_scan and port.input_dir:
             inter_str = port.name.replace("output", "inter")
@@ -298,12 +303,13 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
         else:
             io = "input" if port.input_dir else "output"
             io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
-            if tab_str + io_str not in top_module_io:
-                top_module_io.append(tab_str + io_str)
+            add_to_top = tab_str + io_str
+            # multiple modules may have the same port, add to top module IO only once
+            if add_to_top not in top_module_io:
+                top_module_io.append(add_to_top)
             inter_str = port.name
         module_port_str = tab_str + tab_str + f".{port.name}({inter_str}),\n"
-        if module_port_str not in module_inst_str:
-            module_inst_str += module_port_str
+        module_inst_str += module_port_str
 
     # wire clk input to module only if clk is an input
     if needs_clock:
