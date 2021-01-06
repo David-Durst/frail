@@ -2,7 +2,7 @@
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
-from frail import BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
+from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
 import time
 
 design_a_free_vars = {}
@@ -31,7 +31,7 @@ def scan_const4_f(scan_var_4):
   x33 = BVEqualsExtend(x30, x32)
   x34 = BV(1,32)
   x35 = BV(0,32)
-  x36 = Ite(x33, x34, x35)
+  x36 = IteExtend(x33, x34, x35)
   x37 = BVAddExtend(scan_var_4, x36)
   if 1 not in design_a_free_vars:
     design_a_free_vars[1] = Symbol("y_max", BVType(32))
@@ -88,7 +88,7 @@ scan_const8 = BV(0, 32)
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
-from frail import BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
+from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
 import time
 
 design_b_free_vars = {}
@@ -111,14 +111,14 @@ def scan_const2_f(scan_var_2):
   if 49 not in design_b_free_vars:
     design_b_free_vars[49] = Symbol("x_delta", BVType(12))
   x49 = design_b_free_vars[49]
-  x50 = Ite(x47, x48, x49)
+  x50 = IteExtend(x47, x48, x49)
   x51 = BVAddExtend(scan_var_2, x50)
   if 1 not in design_b_free_vars:
     design_b_free_vars[1] = Symbol("y_max", BVType(32))
   x1 = design_b_free_vars[1]
   x52 = BVEqualsExtend(x51, x1)
   x53 = BV(0,32)
-  x54 = Ite(x52, x53, x51)
+  x54 = IteExtend(x52, x53, x51)
   return x54
 design_b_scans.append(scan_const2_f)
 design_b_scans_results.append("scan_const2")

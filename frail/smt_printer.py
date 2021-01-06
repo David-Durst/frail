@@ -12,7 +12,7 @@ smt_prologue = """
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
-from frail import BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
+from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
 import time
 """
 
@@ -90,7 +90,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Ite(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "IteExtend(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == EqOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
