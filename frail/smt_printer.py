@@ -12,7 +12,7 @@ smt_prologue = """
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
-from frail import BVAddExtend, BVMulExtend, BVEqualsExtend
+from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
 import time
 """
 
@@ -90,7 +90,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
         print_let(e)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "Ite(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "IteExtend(" + b_str + ", " + arg0_str + ", " + arg1_str + ")\n"
     elif e_type == EqOp:
         arg0_str = print_arg(e.arg0_index, lake_state, name)
         arg1_str = print_arg(e.arg1_index, lake_state, name)
@@ -151,20 +151,23 @@ def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: 
 with Solver("cvc4",
        logic=logicBV,
        incremental=True) as s:
+    per_step_constraints = []
     for step in range({num_iterations}):
         print("handling step " + str(step))
-        start = time.time()
         for i in range(len({scans_a})):
             globals()[{scans_results_a}[i]] = {scans_a}[i](globals()[{scans_results_a}[i]])
         for i in range(len({scans_b})):
             globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
-        s.push()
-        s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), Equals(globals()[{scans_results_a}[len({scans_results_a})-1]], globals()[{scans_results_b}[len({scans_results_b})-1]]))))
-        res = s.solve()
-        assert res
-        s.pop()
-        end = time.time()
-        print("time: " + str(start - end))
+        per_step_constraints.append(Equals(globals()[{scans_results_a}[len({scans_results_a})-1]], globals()[{scans_results_b}[len({scans_results_b})-1]]))
+    final_constraint = per_step_constraints[0]
+    for c in per_step_constraints[1:]:
+        final_constraint = And(final_constraint, c) 
+    s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), final_constraint)))
+    start = time.time()
+    res = s.solve()
+    assert res
+    end = time.time()
+    print("time: " + str(end - start))
     """)
 
 
