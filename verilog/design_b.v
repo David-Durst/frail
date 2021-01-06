@@ -60,7 +60,7 @@ module scan4 (
 
     always_comb begin 
         x20 = scan_output_14 == y_max; 
-        x17 = scan_output_12 == x_max; 
+        x17 = scan_output_12 == x_max + 1; 
         x18 = x17 ? y_stride : x_stride; 
         x19 = scan_var_4 + x18; 
         x22 = x20 ? 32'd0 : x19; 
@@ -82,7 +82,7 @@ module scan12 (
     logic [31:0] x33; 
 
     always_comb begin 
-        x29 = scan_output_12 == x_max; 
+        x29 = scan_output_12 == x_max + 1; 
         x32 = scan_var_12 + 32'd1; 
         x33 = x29 ? 32'd0 : x32; 
     end 
@@ -103,7 +103,7 @@ module scan14 (
     logic [31:0] x27; 
 
     always_comb begin 
-        x24 = scan_output_12 == x_max; 
+        x24 = scan_output_12 == x_max + 1; 
         x26 = scan_var_14 + 32'd1; 
         x27 = x24 ? x26 : scan_var_14; 
     end 
