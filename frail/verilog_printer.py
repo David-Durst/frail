@@ -55,17 +55,18 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
         # so that this signal is printed in Verilog
-        port = None
+        add_port = None
         if e_type == Var:
             if e == cur_scan_lambda_var:
-                port = ModulePort(e.name, e.width, True, False, False)
+                add_port = ModulePort(e.name, e.width, True, False, False)
             else:
-                port = ModulePort(e.name, e.width, False, True, False)
+                add_port = ModulePort(e.name, e.width, False, True, False)
         elif e_type == RecurrenceSeq:
-            port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
+            add_port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
         
-        if port is not None and port not in io_ports[cur_scan_idx]:
-            io_ports[cur_scan_idx].append(port)
+        if add_port is not None and add_port not in io_ports[cur_scan_idx]:
+            io_ports[cur_scan_idx].append(add_port)
+            
         return
 
     printed_ops.add(e.index)
@@ -89,11 +90,12 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
     if e_type == Var:
         # don't redefine the scan's lambda variable
         if e == cur_scan_lambda_var:
-            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, True, False, False))
-
+            add_port = ModulePort(e.name, e.width, True, False, False)
         else:
             VarTable[f"x{e.index}"] = str(e.name)
-            io_ports[cur_scan_idx].append(ModulePort(e.name, e.width, False, True, False))
+            add_port = ModulePort(e.name, e.width, False, True, False)
+        if add_port not in io_ports[cur_scan_idx]:
+            io_ports[cur_scan_idx].append(add_port)
     elif e_type == Int:
         VarTable[f"x{e.index}"] = str(e.width) + "'d" + str(e.val)
     elif e_type == Bool:
@@ -277,6 +279,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
 
     module_inst_str = ""
     needs_clock = False
+    
     for port in io_ports[k]:
         # check if module requires clock
         if port.requires_clock:
@@ -303,8 +306,8 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             top_module_io.append(tab_str + io_str)
             inter_str = port.name
         module_port_str = tab_str + tab_str + f".{port.name}({inter_str}),\n"
-        if module_port_str not in module_inst_str:
-            module_inst_str += module_port_str
+        # if module_port_str not in module_inst_str:
+        module_inst_str += module_port_str
 
     # wire clk input to module only if clk is an input
     if needs_clock:
