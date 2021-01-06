@@ -10,8 +10,8 @@ x_stride = var_f("x_stride", x_width)
 y_stride = var_f("y_stride")
 def design_b_func(z: Var):
     x_counter = scan_const_f(lambda z: add_f(z, int_f(1)))
-    y_counter = scan_const_f(lambda z: add_f(z, int_f(1)))
     x_count = x_counter.get_seq()
+    y_counter = scan_const_f(lambda z: if_f(eq_f(x_count, x_max), add_f(z, int_f(1)), z))
     y_count = y_counter.get_seq()
     xadd = add_f(z, x_stride)
     yadd = add_f(z,

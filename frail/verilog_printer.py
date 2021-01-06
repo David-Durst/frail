@@ -62,6 +62,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             else:
                 add_port = ModulePort(e.name, e.width, False, True, False)
         elif e_type == RecurrenceSeq:
+            width = get_width(e.index, lake_state)
             add_port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
 
         if add_port is not None and add_port not in io_ports[cur_scan_idx]:
