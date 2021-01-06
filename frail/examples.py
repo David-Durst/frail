@@ -3,18 +3,24 @@ from frail.debug_printer import *
 from frail.verilog_printer import *
 
 
+x_width = 16
 x_max = var_f("x_max")
 y_max = var_f("y_max")
+x_stride = var_f("x_stride", x_width)
+y_stride = var_f("y_stride")
 def design_b_func(z: Var):
-    x_width = 12
-    xadd = add_f(z, var_f("x_stride", x_width))
+    x_counter = scan_const_f(lambda z: add_f(z, int_f(1)))
+    y_counter = scan_const_f(lambda z: add_f(z, int_f(1)))
+    x_count = x_counter.get_seq()
+    y_count = y_counter.get_seq()
+    xadd = add_f(z, x_stride)
     yadd = add_f(z,
-              if_f(eq_f(select_bits_f(xadd, x_width), x_max),
-                   var_f("y_stride"),
-                   var_f("x_stride", x_width)
-                   )
+              if_f(eq_f(x_count, x_max),
+                   add_f(x_stride, y_stride),
+                   x_stride
+                )
               )
-    return if_f(eq_f(yadd, y_max), int_f(0), yadd)
+    return if_f(eq_f(y_count, y_max), int_f(0), yadd)
 
 
 design_b = scan_const_f(design_b_func)

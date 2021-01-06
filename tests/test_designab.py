@@ -33,7 +33,7 @@ def test_addr_design(
     # print(starting_addr, strides_0, strides_1, ranges_0, ranges_1)
 
     # set up addressor model
-    model_ag = AddrGenModel(6, 16)
+    model_ag = AddrGenModel(2, 16)
 
     config = {}
     config["starting_addr"] = starting_addr
@@ -79,7 +79,7 @@ def test_addr_design(
         tester.circuit.y_stride = strides_1
         tester.circuit.offset = starting_addr
 
-    for i in range(12):
+    for i in range(100):
 
         tester.eval()
         tester.step(2)
@@ -97,4 +97,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "design_b", 0, 16, 16, 16, 16)
+    test_addr_design(False, "design_b", 0, 15, 20, 12, 13)
