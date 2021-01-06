@@ -83,7 +83,7 @@ def test_addr_design(
 
         tester.eval()
         tester.step(2)
-        #tester.circuit.addr.expect(model_ag.get_address())
+        tester.circuit.addr.expect(model_ag.get_address())
         print(model_ag.get_address())
         model_ag.step()
 
@@ -97,4 +97,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "design_b")
+    test_addr_design(False, "design_b", 0, 16, 16, 16, 16)
