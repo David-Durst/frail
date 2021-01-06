@@ -55,6 +55,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
         # so that this signal is printed in Verilog
+        port = None
         if e_type == Var:
             if e == cur_scan_lambda_var:
                 port = ModulePort(e.name, e.width, True, False, False)
@@ -63,7 +64,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         elif e_type == RecurrenceSeq:
             port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
         
-        if port not in io_ports[cur_scan_idx]:
+        if port is not None and port not in io_ports[cur_scan_idx]:
             io_ports[cur_scan_idx].append(port)
         return
 
@@ -290,8 +291,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             # these are output signals, so safe to create these
             #  intermediate signals
             inter_full_str = f"logic [{port.width - 1}:0] {inter_str};"
-            if inter_full_str not in inter_logics:
-                inter_logics.append(inter_full_str)
+            inter_logics.append(inter_full_str)
         # input signals that are from other scans will need to be wired up
         elif port.input_from_other_scan and port.input_dir:
             inter_str = port.name.replace("output", "inter")
@@ -300,8 +300,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
         else:
             io = "input" if port.input_dir else "output"
             io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
-            if tab_str + io_str not in top_module_io:
-                top_module_io.append(tab_str + io_str)
+            top_module_io.append(tab_str + io_str)
             inter_str = port.name
         module_port_str = tab_str + tab_str + f".{port.name}({inter_str}),\n"
         if module_port_str not in module_inst_str:
