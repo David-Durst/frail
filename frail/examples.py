@@ -44,22 +44,38 @@ design_a_merged = scan_const_f(lambda z: add_f(design_a_x_strided.get_seq(), des
 # print_frail(design_a_merged)
 design_a = scan_const_f(lambda z: add_f(design_a_merged.get_seq(), var_f("offset"))) """
 
+# configuration registers
+x_max = var_f("x_max")
+y_max = var_f("y_max")
+x_stride = var_f("x_stride")
+y_stride = var_f("y_stride")
+offset = var_f("offset")
+
 # original addressor design
 def create_og_design():
-    x_max = var_f("x_max")
-    y_max = var_f("y_max")
-    x_stride = var_f("x_stride")
-    y_stride = var_f("y_stride")
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
     y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
     x_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), int_f(0), add_f(z, x_stride)))
     y_counter_from_x = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, y_stride), z))
     y_counter = scan_const_f(lambda z: if_f(eq_f(y_unit_counter.get_seq(), sub_f(y_max, int_f(1))), int_f(0), y_counter_from_x.get_seq()))
-    og_design = scan_const_f(lambda z: add_f(add_f(x_counter.get_seq(), y_counter.get_seq()), var_f("offset")))
+    og_design = scan_const_f(lambda z: add_f(add_f(x_counter.get_seq(), y_counter.get_seq()), offset))
     return og_design
 
 og_design = create_og_design()
 
 # optimized addressor design
-def create_op_design():
-    
+def create_op_design(z: Var):
+    x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
+    y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
+    x_count = x_unit_counter.get_seq()
+    y_count = y_unit_counter.get_seq()
+    yadd = add_f(z,
+              if_f(eq_f(x_count, sub_f(x_max, int_f(1))),
+                   y_stride,
+                   x_stride
+                )
+              )
+    op_design = if_f(eq_f(y_count, sub_f(y_max, int_f(1))), int_f(0), yadd)
+    return op_design
+
+op_design = scan_const_f(create_op_design)
