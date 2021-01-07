@@ -13,7 +13,7 @@ from lake.utils.util import transform_strides_and_ranges
 
 
 @pytest.mark.parametrize("test_rand", [False, True])
-@pytest.mark.parametrize("design", ["design_a", "design_b"])
+@pytest.mark.parametrize("design", ["og_design", "op_design"])
 def test_addr_design(
         test_rand,
         design,
@@ -62,7 +62,7 @@ def test_addr_design(
     # no need to rst_n or clk_en yet
 
     # config regs
-    if design == "design_b":
+    if design == "design_b" or design == "op_design":
         tranges, tstrides = transform_strides_and_ranges(
             [ranges_0, ranges_1],
             [strides_0, strides_1],
@@ -98,4 +98,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "og_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(False, "op_design")#, 0, 15, 20, 12, 15)
