@@ -40,7 +40,7 @@ def frail_to_smt(e: AST, root: bool = True, lake_state: LakeDSLState = default_l
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "if " + str(e.index) + " not in " + \
                                   name + "_free_vars:\n"
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + indent_str + name + "_free_vars[" + \
-                                  str(e.index) + "] = Symbol(\"" + str(e.name) + "\", BVType(" + str(e.width) + "))\n"
+                                  str(e.index) + "] = Symbol(\"" + str(e.name) + "_" + name + "\", BVType(" + str(e.width) + "))\n"
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] +  name + "_free_vars[" + str(e.index) + \
                                   "]" + "\n"
@@ -173,6 +173,9 @@ with Solver("cvc4",
 
 def print_ex_smt():
     check_circuit(design_a, "design_a", design_b, "design_b", 1000)
+
+def print_ex_opog():
+    check_circuit(op_design, "op_design", og_design, "og_design", 2)
 
 def print_frail_smt():
     frail_to_smt(design_b, name="design_b")
