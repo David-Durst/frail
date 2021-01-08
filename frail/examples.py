@@ -63,17 +63,17 @@ def create_og_design():
 og_design = create_og_design()
 
 # optimized addressor design
-def create_op_design(z: Var):
+def create_op_design():
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
     y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
     x_count = x_unit_counter.get_seq()
     y_count = y_unit_counter.get_seq()
-    yadd = add_f(z,
+    yadd = scan_const_f(lambda z: add_f(z,
               if_f(eq_f(x_count, sub_f(x_max, int_f(1))),
                    y_stride,
                    x_stride
                 )
-            )
-    return add_f(yadd, offset)
+            ))
+    return scan_const_f(lambda z: add_f(yadd.get_seq(), offset))
 
-op_design = scan_const_f(create_op_design)
+op_design = create_op_design()

@@ -88,10 +88,7 @@ def test_addr_design(
         tester.eval()
         model_ag.step()
         tester.circuit.addr.expect(model_ag.get_address())
-        print(model_ag.get_address())
-        
-
-        
+        # print(model_ag.get_address())
 
     with tempfile.TemporaryDirectory() as tempdir:
         tempdir = design
@@ -104,4 +101,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "op_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(True, "op_design")#, 0, 15, 20, 12, 15)
