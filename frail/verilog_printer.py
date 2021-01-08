@@ -62,6 +62,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             else:
                 add_port = ModulePort(e.name, e.width, False, True, False)
         elif e_type == RecurrenceSeq:
+            width = get_width(e.index, lake_state)
             add_port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
 
         if add_port is not None and add_port not in io_ports[cur_scan_idx]:
@@ -364,5 +365,5 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
-    print(tab_str + f"always_ff @(posedge clk) begin\n{tab_str}{tab_str} addr <= scan_inter_{output_scan_index};\n{tab_str}end")
+    print(tab_str + f"always_comb begin\n{tab_str}{tab_str} addr = scan_inter_{output_scan_index};\n{tab_str}end")
     print(verilog_footer)
