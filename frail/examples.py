@@ -56,8 +56,7 @@ def create_og_design():
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
     y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
     x_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), int_f(0), add_f(z, x_stride)))
-    y_counter_from_x = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, y_stride), z))
-    y_counter = scan_const_f(lambda z: if_f(eq_f(y_unit_counter.get_seq(), sub_f(y_max, int_f(1))), int_f(0), y_counter_from_x.get_seq()))
+    y_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, y_stride), z))
     og_design = scan_const_f(lambda z: add_f(add_f(x_counter.get_seq(), y_counter.get_seq()), offset))
     return og_design
 
@@ -75,7 +74,6 @@ def create_op_design(z: Var):
                    x_stride
                 )
             )
-    op_design = if_f(eq_f(y_count, sub_f(y_max, int_f(1))), int_f(0), yadd)
-    return op_design
+    return add_f(yadd, offset)
 
 op_design = scan_const_f(create_op_design)

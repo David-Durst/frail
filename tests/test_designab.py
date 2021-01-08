@@ -11,7 +11,7 @@ import random
 from lake.models.addr_gen_model import AddrGenModel
 from lake.utils.util import transform_strides_and_ranges
 
-
+random.seed(0)
 @pytest.mark.parametrize("test_rand", [False, True])
 @pytest.mark.parametrize("design", ["og_design", "op_design"])
 def test_addr_design(
@@ -24,13 +24,14 @@ def test_addr_design(
         ranges_1=13):
 
     if test_rand:
-        starting_addr = random.randint(0, 2**16 - 1)
-        strides_0 = random.randint(0, 2**16 - 1)
-        strides_1 = random.randint(0, 2**16 - 1)
-        ranges_0 = random.randint(0, 2**16 - 1)
-        ranges_1 = random.randint(0, 2**16 - 1)
+        max_value = 2**5
+        starting_addr = random.randint(0, max_value - 1)
+        strides_0 = random.randint(0, max_value - 1)
+        strides_1 = random.randint(0, max_value - 1)
+        ranges_0 = random.randint(0, max_value - 1)
+        ranges_1 = random.randint(0, max_value - 1)
 
-    # print(starting_addr, strides_0, strides_1, ranges_0, ranges_1)
+    print(starting_addr, strides_0, strides_1, ranges_0, ranges_1)
 
     # set up addressor model
     model_ag = AddrGenModel(2, 16)
@@ -67,11 +68,12 @@ def test_addr_design(
             [ranges_0, ranges_1],
             [strides_0, strides_1],
             2)
-        tester.circuit.x_max = tranges[0]
+        tester.circuit.x_max = ranges_0 #tranges[0]
         tester.circuit.x_stride = tstrides[0]
-        tester.circuit.y_max = tranges[1]
+        tester.circuit.y_max = ranges_1 #tranges[1]
         tester.circuit.y_stride = tstrides[1]
         tester.circuit.offset = starting_addr
+        print("transformed:", tranges, tstrides)
     else:
         tester.circuit.x_max = ranges_0
         tester.circuit.x_stride = strides_0
@@ -79,13 +81,15 @@ def test_addr_design(
         tester.circuit.y_stride = strides_1
         tester.circuit.offset = starting_addr
 
-    for i in range(100):
+    for i in range(min(100, ranges_0 * ranges_1)):
 
         tester.eval()
         tester.step(2)
         tester.circuit.addr.expect(model_ag.get_address())
         print(model_ag.get_address())
         model_ag.step()
+
+        
 
     with tempfile.TemporaryDirectory() as tempdir:
         tempdir = design
@@ -98,4 +102,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "og_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(True, "op_design")#, 0, 15, 20, 12, 15)
