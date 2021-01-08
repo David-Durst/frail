@@ -11,7 +11,7 @@ import random
 from lake.models.addr_gen_model import AddrGenModel
 from lake.utils.util import transform_strides_and_ranges
 
-random.seed(0)
+
 @pytest.mark.parametrize("test_rand", [False, True])
 @pytest.mark.parametrize("design", ["og_design", "op_design"])
 def test_addr_design(
