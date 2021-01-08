@@ -42,8 +42,8 @@ module og_design (
         .scan_var_9(scan_inter_9)
     );
 
-    always_ff @(posedge clk) begin
-         addr <= scan_inter_9;
+    always_comb begin
+         addr = scan_inter_9;
     end
 endmodule
 

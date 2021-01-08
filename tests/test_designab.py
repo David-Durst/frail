@@ -81,12 +81,15 @@ def test_addr_design(
         tester.circuit.y_stride = strides_1
         tester.circuit.offset = starting_addr
 
-    for i in range(min(100, ranges_0 * ranges_1)):
-        tester.eval()
+    for i in range(min(100, ranges_0 * ranges_1 - 1)):
+        # start with first addr on rising clk edge
+        tester.circuit.clk = 1
         tester.step(2)
+        tester.eval()
+        model_ag.step()
         tester.circuit.addr.expect(model_ag.get_address())
         print(model_ag.get_address())
-        model_ag.step()
+        
 
         
 
@@ -101,4 +104,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(True, "op_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(False, "op_design")#, 0, 15, 20, 12, 15)
