@@ -81,7 +81,7 @@ def test_addr_design(
         tester.circuit.y_stride = strides_1
         tester.circuit.offset = starting_addr
 
-    for i in range(min(100, ranges_0 * ranges_1 - 1)):
+    for i in range(min(1000, ranges_0 * ranges_1 - 1)):
         # start with first addr on rising clk edge
         tester.circuit.clk = 1
         tester.step(2)
@@ -91,13 +91,13 @@ def test_addr_design(
         # print(model_ag.get_address())
 
     with tempfile.TemporaryDirectory() as tempdir:
-        tempdir = design
+        # tempdir = design
         shutil.copy(f"{frail_dir}/verilog/{design}.v", tempdir)
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
                                skip_compile=True,
-                               #flags=["-Wno-fatal"])
-                               flags=["-Wno-fatal", "--trace"])
+                               flags=["-Wno-fatal"])
+                               # flags=["-Wno-fatal", "--trace"])
 
 
 if __name__ == "__main__":
