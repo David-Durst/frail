@@ -27,12 +27,14 @@ def create_op_design():
     y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
     x_count = x_unit_counter.get_seq()
     y_count = y_unit_counter.get_seq()
-    yadd = scan_const_f(lambda z: add_f(z,
-              if_f(eq_f(x_count, sub_f(x_max, int_f(1))),
-                   y_stride,
-                   x_stride
-                )
-            ))
+    yadd = scan_const_f(lambda z: 
+              add_f(z,
+                  if_f(eq_f(x_count, sub_f(x_max, int_f(1))),
+                      y_stride,
+                      x_stride
+                  )
+              )
+           )
     return scan_const_f(lambda z: add_f(yadd.get_seq(), offset))
 
 op_design = create_op_design()
