@@ -74,7 +74,7 @@ def create_op_design(z: Var):
                    y_stride,
                    x_stride
                 )
-              )
+            )
     op_design = if_f(eq_f(y_count, sub_f(y_max, int_f(1))), int_f(0), yadd)
     return op_design
 

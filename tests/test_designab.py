@@ -20,7 +20,7 @@ def test_addr_design(
         starting_addr=0,
         strides_0=15,
         strides_1=13,
-        ranges_0=12,
+        ranges_0=2,
         ranges_1=13):
 
     if test_rand:
@@ -98,4 +98,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "op_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(False, "og_design")#, 0, 15, 20, 12, 15)
