@@ -5,84 +5,57 @@ from pysmt.logics import BV as logicBV
 from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
 import time
 
-design_a_free_vars = {}
-design_a_scans = []
-design_a_scans_results = []
+op_design_free_vars = {}
+op_design_scans = []
+op_design_scans_results = []
 
-def scan_const3_f(scan_var_3): 
+def scan_const10_f(scan_var_10): 
+  if 16 not in op_design_free_vars:
+    op_design_free_vars[16] = Symbol("x_max_op_design", BVType(32))
+  x16 = op_design_free_vars[16]
   x40 = BV(1,32)
-  x41 = BVAddExtend(scan_var_3, x40)
-  if 0 not in design_a_free_vars:
-    design_a_free_vars[0] = Symbol("x_max", BVType(32))
-  x0 = design_a_free_vars[0]
-  x42 = BVURem(x41, x0)
-  return x42
-design_a_scans.append(scan_const3_f)
-design_a_scans_results.append("scan_const3")
-scan_const3 = BV(0, 32)
+  x41 = BVSubExtend(x16, x40)
+  x42 = BVEqualsExtend(scan_var_10, x41)
+  x43 = BV(0,32)
+  x44 = BV(1,32)
+  x45 = BVAddExtend(scan_var_10, x44)
+  x46 = IteExtend(x42, x43, x45)
+  return x46
+op_design_scans.append(scan_const10_f)
+op_design_scans_results.append("scan_const10")
+scan_const10 = BV(0, 32)
 
-def scan_const4_f(scan_var_4): 
-  x30 = scan_const3
-  if 0 not in design_a_free_vars:
-    design_a_free_vars[0] = Symbol("x_max", BVType(32))
-  x0 = design_a_free_vars[0]
-  x31 = BV(1,32)
-  x32 = BVSubExtend(x0, x31)
-  x33 = BVEqualsExtend(x30, x32)
+def scan_const14_f(scan_var_14): 
+  x12 = scan_const10
+  if 16 not in op_design_free_vars:
+    op_design_free_vars[16] = Symbol("x_max_op_design", BVType(32))
+  x16 = op_design_free_vars[16]
   x34 = BV(1,32)
-  x35 = BV(0,32)
-  x36 = IteExtend(x33, x34, x35)
-  x37 = BVAddExtend(scan_var_4, x36)
-  if 1 not in design_a_free_vars:
-    design_a_free_vars[1] = Symbol("y_max", BVType(32))
-  x1 = design_a_free_vars[1]
-  x38 = BVURem(x37, x1)
+  x35 = BVSubExtend(x16, x34)
+  x36 = BVEqualsExtend(x12, x35)
+  if 19 not in op_design_free_vars:
+    op_design_free_vars[19] = Symbol("y_stride_op_design", BVType(32))
+  x19 = op_design_free_vars[19]
+  if 18 not in op_design_free_vars:
+    op_design_free_vars[18] = Symbol("x_stride_op_design", BVType(16))
+  x18 = op_design_free_vars[18]
+  x37 = IteExtend(x36, x19, x18)
+  x38 = BVAddExtend(scan_var_14, x37)
   return x38
-design_a_scans.append(scan_const4_f)
-design_a_scans_results.append("scan_const4")
-scan_const4 = BV(0, 32)
+op_design_scans.append(scan_const14_f)
+op_design_scans_results.append("scan_const14")
+scan_const14 = BV(0, 32)
 
-def scan_const5_f(scan_var_5): 
-  x18 = scan_const3
-  if 19 not in design_a_free_vars:
-    design_a_free_vars[19] = Symbol("x_stride", BVType(32))
-  x19 = design_a_free_vars[19]
-  x20 = BVMulExtend(x18, x19)
-  return x20
-design_a_scans.append(scan_const5_f)
-design_a_scans_results.append("scan_const5")
-scan_const5 = BV(0, 32)
-
-def scan_const6_f(scan_var_6): 
-  x26 = scan_const4
-  if 27 not in design_a_free_vars:
-    design_a_free_vars[27] = Symbol("y_stride", BVType(32))
-  x27 = design_a_free_vars[27]
-  x28 = BVMulExtend(x26, x27)
-  return x28
-design_a_scans.append(scan_const6_f)
-design_a_scans_results.append("scan_const6")
-scan_const6 = BV(0, 32)
-
-def scan_const7_f(scan_var_7): 
-  x14 = scan_const5
-  x15 = scan_const6
-  x16 = BVAddExtend(x14, x15)
-  return x16
-design_a_scans.append(scan_const7_f)
-design_a_scans_results.append("scan_const7")
-scan_const7 = BV(0, 32)
-
-def scan_const8_f(scan_var_8): 
-  x10 = scan_const7
-  if 11 not in design_a_free_vars:
-    design_a_free_vars[11] = Symbol("offset", BVType(32))
-  x11 = design_a_free_vars[11]
-  x12 = BVAddExtend(x10, x11)
-  return x12
-design_a_scans.append(scan_const8_f)
-design_a_scans_results.append("scan_const8")
-scan_const8 = BV(0, 32)
+def scan_const15_f(scan_var_15): 
+  x31 = scan_const14
+  if 4 not in op_design_free_vars:
+    op_design_free_vars[4] = Symbol("offset_op_design", BVType(32))
+  x4 = op_design_free_vars[4]
+  x32 = BVAddExtend(x31, x4)
+  return x32
+op_design_scans.append(scan_const15_f)
+op_design_scans_results.append("scan_const15")
+scan_const15 = BV(0, 32)
 
 
 from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
@@ -91,55 +64,92 @@ from pysmt.logics import BV as logicBV
 from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
 import time
 
-design_b_free_vars = {}
-design_b_scans = []
-design_b_scans_results = []
+og_design_free_vars = {}
+og_design_scans = []
+og_design_scans_results = []
 
-def scan_const2_f(scan_var_2): 
-  if 44 not in design_b_free_vars:
-    design_b_free_vars[44] = Symbol("x_delta", BVType(12))
-  x44 = design_b_free_vars[44]
-  x45 = BVAddExtend(scan_var_2, x44)
-  x46 = BVExtract(x45, 0, 12 - 1)
-  if 0 not in design_b_free_vars:
-    design_b_free_vars[0] = Symbol("x_max", BVType(32))
-  x0 = design_b_free_vars[0]
-  x47 = BVEqualsExtend(x46, x0)
-  if 48 not in design_b_free_vars:
-    design_b_free_vars[48] = Symbol("y_delta", BVType(32))
-  x48 = design_b_free_vars[48]
-  if 49 not in design_b_free_vars:
-    design_b_free_vars[49] = Symbol("x_delta", BVType(12))
-  x49 = design_b_free_vars[49]
-  x50 = IteExtend(x47, x48, x49)
-  x51 = BVAddExtend(scan_var_2, x50)
-  if 1 not in design_b_free_vars:
-    design_b_free_vars[1] = Symbol("y_max", BVType(32))
-  x1 = design_b_free_vars[1]
-  x52 = BVEqualsExtend(x51, x1)
-  x53 = BV(0,32)
-  x54 = IteExtend(x52, x53, x51)
-  return x54
-design_b_scans.append(scan_const2_f)
-design_b_scans_results.append("scan_const2")
-scan_const2 = BV(0, 32)
+def scan_const5_f(scan_var_5): 
+  if 16 not in og_design_free_vars:
+    og_design_free_vars[16] = Symbol("x_max_og_design", BVType(32))
+  x16 = og_design_free_vars[16]
+  x76 = BV(1,32)
+  x77 = BVSubExtend(x16, x76)
+  x78 = BVEqualsExtend(scan_var_5, x77)
+  x79 = BV(0,32)
+  x80 = BV(1,32)
+  x81 = BVAddExtend(scan_var_5, x80)
+  x82 = IteExtend(x78, x79, x81)
+  return x82
+og_design_scans.append(scan_const5_f)
+og_design_scans_results.append("scan_const5")
+scan_const5 = BV(0, 32)
+
+def scan_const7_f(scan_var_7): 
+  x53 = scan_const5
+  if 16 not in og_design_free_vars:
+    og_design_free_vars[16] = Symbol("x_max_og_design", BVType(32))
+  x16 = og_design_free_vars[16]
+  x54 = BV(1,32)
+  x55 = BVSubExtend(x16, x54)
+  x56 = BVEqualsExtend(x53, x55)
+  x57 = BV(0,32)
+  if 18 not in og_design_free_vars:
+    og_design_free_vars[18] = Symbol("x_stride_og_design", BVType(16))
+  x18 = og_design_free_vars[18]
+  x58 = BVAddExtend(scan_var_7, x18)
+  x59 = IteExtend(x56, x57, x58)
+  return x59
+og_design_scans.append(scan_const7_f)
+og_design_scans_results.append("scan_const7")
+scan_const7 = BV(0, 32)
+
+def scan_const8_f(scan_var_8): 
+  x69 = scan_const5
+  if 16 not in og_design_free_vars:
+    og_design_free_vars[16] = Symbol("x_max_og_design", BVType(32))
+  x16 = og_design_free_vars[16]
+  x70 = BV(1,32)
+  x71 = BVSubExtend(x16, x70)
+  x72 = BVEqualsExtend(x69, x71)
+  if 19 not in og_design_free_vars:
+    og_design_free_vars[19] = Symbol("y_stride_og_design", BVType(32))
+  x19 = og_design_free_vars[19]
+  x73 = BVAddExtend(scan_var_8, x19)
+  x74 = IteExtend(x72, x73, scan_var_8)
+  return x74
+og_design_scans.append(scan_const8_f)
+og_design_scans_results.append("scan_const8")
+scan_const8 = BV(0, 32)
+
+def scan_const9_f(scan_var_9): 
+  x48 = scan_const7
+  x49 = scan_const8
+  x50 = BVAddExtend(x48, x49)
+  if 4 not in og_design_free_vars:
+    og_design_free_vars[4] = Symbol("offset_og_design", BVType(32))
+  x4 = og_design_free_vars[4]
+  x51 = BVAddExtend(x50, x4)
+  return x51
+og_design_scans.append(scan_const9_f)
+og_design_scans_results.append("scan_const9")
+scan_const9 = BV(0, 32)
 
 
 with Solver("cvc4",
        logic=logicBV,
        incremental=True) as s:
     per_step_constraints = []
-    for step in range(1000):
+    for step in range(2):
         print("handling step " + str(step))
-        for i in range(len(design_a_scans)):
-            globals()[design_a_scans_results[i]] = design_a_scans[i](globals()[design_a_scans_results[i]])
-        for i in range(len(design_b_scans)):
-            globals()[design_b_scans_results[i]] = design_b_scans[i](globals()[design_b_scans_results[i]])
-        per_step_constraints.append(Equals(globals()[design_a_scans_results[len(design_a_scans_results)-1]], globals()[design_b_scans_results[len(design_b_scans_results)-1]]))
+        for i in range(len(op_design_scans)):
+            globals()[op_design_scans_results[i]] = op_design_scans[i](globals()[op_design_scans_results[i]])
+        for i in range(len(og_design_scans)):
+            globals()[og_design_scans_results[i]] = og_design_scans[i](globals()[og_design_scans_results[i]])
+        per_step_constraints.append(Equals(globals()[op_design_scans_results[len(op_design_scans_results)-1]], globals()[og_design_scans_results[len(og_design_scans_results)-1]]))
     final_constraint = per_step_constraints[0]
     for c in per_step_constraints[1:]:
         final_constraint = And(final_constraint, c) 
-    s.add_assertion(ForAll(design_a_free_vars.values(), Exists(design_b_free_vars.values(), final_constraint)))
+    s.add_assertion(ForAll(op_design_free_vars.values(), Exists(og_design_free_vars.values(), final_constraint)))
     start = time.time()
     res = s.solve()
     assert res
