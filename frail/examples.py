@@ -16,7 +16,7 @@ def create_og_design():
     y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
     x_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), int_f(0), add_f(z, x_stride)))
     y_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, y_stride), z))
-    og_design = scan_const_f(lambda z: add_f(add_f(x_counter.get_seq(), y_counter.get_seq()), offset))
+    og_design = scan_const_f(lambda z: if_f(eq_f(y_unit_counter.get_seq(), y_max), int_f(0), add_f(add_f(x_counter.get_seq(), y_counter.get_seq()), offset)))
     return og_design
 
 og_design = create_og_design()
@@ -35,7 +35,7 @@ def create_op_design():
                   )
               )
            )
-    return scan_const_f(lambda z: add_f(yadd.get_seq(), offset))
+    return scan_const_f(lambda z: if_f(eq_f(y_unit_counter.get_seq(), y_max), int_f(0), add_f(yadd.get_seq(), offset)))
 
 op_design = create_op_design()
 
