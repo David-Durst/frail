@@ -1,5 +1,5 @@
 
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver, TRUE
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
@@ -58,7 +58,7 @@ op_design_scans_results.append("scan_const15")
 scan_const15 = BV(0, 16)
 
 
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver, TRUE
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
@@ -146,8 +146,8 @@ with Solver("cvc4",
         for i in range(len(og_design_scans)):
             globals()[og_design_scans_results[i]] = og_design_scans[i](globals()[og_design_scans_results[i]])
         per_step_constraints.append(Equals(globals()[op_design_scans_results[len(op_design_scans_results)-1]], globals()[og_design_scans_results[len(og_design_scans_results)-1]]))
-    final_constraint = per_step_constraints[0]
-    for c in per_step_constraints[1:]:
+    final_constraint = Or(Not(Equals(op_design_free_vars[17], og_design_free_vars[17])), Or(Not(Equals(op_design_free_vars[16], og_design_free_vars[16])), TRUE()))
+    for c in per_step_constraints:
         final_constraint = And(final_constraint, c) 
     s.add_assertion(ForAll(op_design_free_vars.values(), Exists(og_design_free_vars.values(), final_constraint)))
     start = time.time()

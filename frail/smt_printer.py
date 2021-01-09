@@ -1,6 +1,6 @@
 from frail.ast import *
 from frail.examples import *
-from typing import Set, Dict
+from typing import Set, Dict, List
 
 indent_str = "  "
 recurrence_seq_str = "scan_const"
@@ -9,7 +9,7 @@ printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 smt_prologue = """
-from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver
+from pysmt.shortcuts import Symbol, And, Equals, BVAdd, BVMul, Bool, Ite, BV, BVURem, BVExtract, ForAll, Exists, Portfolio, Solver, TRUE
 from pysmt.typing import BVType 
 from pysmt.logics import BV as logicBV
 from frail import IteExtend, BVAddExtend, BVSubExtend, BVMulExtend, BVEqualsExtend
@@ -138,7 +138,7 @@ def print_let(arg: AST):
     scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "x" + str(arg.index) + " = "
 
 def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: int,
-                  lake_state: LakeDSLState = default_lake_state):
+                  eq_vars: List[int], lake_state: LakeDSLState = default_lake_state):
     frail_to_smt(e_a, True, lake_state, name_a)
     frail_to_smt(e_b, True, lake_state, name_b)
     free_vars_name_a = name_a + "_free_vars"
@@ -147,6 +147,9 @@ def check_circuit(e_a: AST, name_a: str, e_b: AST, name_b: str, num_iterations: 
     free_vars_name_b = name_b + "_free_vars"
     scans_b = name_b + "_scans"
     scans_results_b = name_b + "_scans_results"
+    eq_vars_str = "TRUE()"
+    for i in eq_vars:
+        eq_vars_str = f"Or(Not(Equals({free_vars_name_a}[{i}], {free_vars_name_b}[{i}])), " + eq_vars_str + ")"
     print(f"""
 with Solver("cvc4",
        logic=logicBV,
@@ -159,8 +162,8 @@ with Solver("cvc4",
         for i in range(len({scans_b})):
             globals()[{scans_results_b}[i]] = {scans_b}[i](globals()[{scans_results_b}[i]])
         per_step_constraints.append(Equals(globals()[{scans_results_a}[len({scans_results_a})-1]], globals()[{scans_results_b}[len({scans_results_b})-1]]))
-    final_constraint = per_step_constraints[0]
-    for c in per_step_constraints[1:]:
+    final_constraint = {eq_vars_str}
+    for c in per_step_constraints:
         final_constraint = And(final_constraint, c) 
     s.add_assertion(ForAll({free_vars_name_a}.values(), Exists({free_vars_name_b}.values(), final_constraint)))
     start = time.time()
@@ -175,7 +178,7 @@ def print_ex_smt():
     check_circuit(design_a, "design_a", design_b, "design_b", 1000)
 
 def print_ex_opog():
-    check_circuit(op_design, "op_design", og_design, "og_design", 2)
+    check_circuit(op_design, "op_design", og_design, "og_design", 2, [16, 17])
 
 def print_frail_smt():
     frail_to_smt(design_b, name="design_b")
