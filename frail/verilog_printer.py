@@ -24,6 +24,8 @@ cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 output_scan_index: int = -1
 VarTable: Dict[str, str] = {}
+config_regs: List[AST] = []
+
 def verilog_header(index: int, name: str="scan"):
     if name == "scan":
         return f"module {name}{index} ("
@@ -38,7 +40,9 @@ def get_var_val(key):
 
 
 def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state, top_name: str = "top"):
-    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
+    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx
+    global output_scan_index, cur_scan_lambda_var, VarTable, config_regs
+
     if root:
         io_ports = {}
         io_strs = {}
@@ -48,6 +52,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         printed_ops = set()
         cur_scan_idx = -1
         output_scan_index = -1
+        config_regs = []
 
     e_type = type(e)
 
@@ -93,6 +98,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         if e == cur_scan_lambda_var:
             add_port = ModulePort(e.name, e.width, True, False, False)
         else:
+            config_regs.append(e)
             VarTable[f"x{e.index}"] = str(e.name)
             add_port = ModulePort(e.name, e.width, False, True, False)
         if add_port not in io_ports[cur_scan_idx]:
@@ -196,7 +202,7 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         # comes from another module instantiation or
         # needs to come from top level IO
         inter_to_check = {}
-
+        print(config_regs)
         for k in keys:
             if k == -1:
                 continue
