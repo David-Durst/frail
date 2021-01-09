@@ -144,7 +144,7 @@ class ScanConstOp(AST):
         return RecurrenceSeq(lake_state.incr(), self.index)
 
 
-def scan_const_f(f: Callable[[Var], Int], width: int = 32, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
+def scan_const_f(f: Callable[[Var], Int], width: int = 16, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
     return ScanConstOp(lake_state.incr(), f, width)
 
 
