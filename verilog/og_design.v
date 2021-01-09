@@ -1,17 +1,17 @@
 module og_design (
 
     input logic clk,
-    input logic [31:0] offset,
-    input logic [31:0] x_max,
-    input logic [31:0] x_stride,
-    input logic [31:0] y_stride,
-    output logic [31:0] addr
+    input logic [15:0] offset,
+    input logic [15:0] x_max,
+    input logic [15:0] x_stride,
+    input logic [15:0] y_stride,
+    output logic [15:0] addr
 );
 
-    logic [31:0] scan_inter_5;
-    logic [31:0] scan_inter_7;
-    logic [31:0] scan_inter_8;
-    logic [31:0] scan_inter_9;
+    logic [15:0] scan_inter_5;
+    logic [15:0] scan_inter_7;
+    logic [15:0] scan_inter_8;
+    logic [15:0] scan_inter_9;
 
     scan5 scan5 (
         .clk(clk),
@@ -49,87 +49,87 @@ endmodule
 
 module scan5 (
     input logic clk, 
-    output logic [31:0] scan_var_5,
-    input logic [31:0] x_max
+    output logic [15:0] scan_var_5,
+    input logic [15:0] x_max
 );
-    logic [31:0] x26; 
-    logic x27; 
-    logic [31:0] x30; 
-    logic [31:0] x31; 
+    logic [15:0] x45; 
+    logic x46; 
+    logic [15:0] x49; 
+    logic [15:0] x50; 
 
     always_comb begin 
-        x26 = x_max - 32'd1; 
-        x27 = scan_var_5 == x26; 
-        x30 = scan_var_5 + 32'd1; 
-        x31 = x27 ? 32'd0 : x30; 
+        x45 = x_max - 16'd1; 
+        x46 = scan_var_5 == x45; 
+        x49 = scan_var_5 + 16'd1; 
+        x50 = x46 ? 16'd0 : x49; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_5 <= x31;
+        scan_var_5 <= x50;
     end
 endmodule
 
 module scan7 (
     input logic clk, 
-    output logic [31:0] scan_var_7,
-    input logic [31:0] scan_output_5,
-    input logic [31:0] x_max,
-    input logic [31:0] x_stride
+    output logic [15:0] scan_var_7,
+    input logic [15:0] scan_output_5,
+    input logic [15:0] x_max,
+    input logic [15:0] x_stride
 );
-    logic [31:0] x19; 
-    logic x20; 
-    logic [31:0] x22; 
-    logic [31:0] x23; 
+    logic [15:0] x38; 
+    logic x39; 
+    logic [15:0] x41; 
+    logic [15:0] x42; 
 
     always_comb begin 
-        x19 = x_max - 32'd1; 
-        x20 = scan_output_5 == x19; 
-        x22 = scan_var_7 + x_stride; 
-        x23 = x20 ? 32'd0 : x22; 
+        x38 = x_max - 16'd1; 
+        x39 = scan_output_5 == x38; 
+        x41 = scan_var_7 + x_stride; 
+        x42 = x39 ? 16'd0 : x41; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_7 <= x23;
+        scan_var_7 <= x42;
     end
 endmodule
 
 module scan8 (
     input logic clk, 
-    output logic [31:0] scan_var_8,
-    input logic [31:0] scan_output_5,
-    input logic [31:0] x_max,
-    input logic [31:0] y_stride
+    output logic [15:0] scan_var_8,
+    input logic [15:0] scan_output_5,
+    input logic [15:0] x_max,
+    input logic [15:0] y_stride
 );
-    logic [31:0] x35; 
-    logic x36; 
-    logic [31:0] x37; 
-    logic [31:0] x38; 
+    logic [15:0] x54; 
+    logic x55; 
+    logic [15:0] x56; 
+    logic [15:0] x57; 
 
     always_comb begin 
-        x35 = x_max - 32'd1; 
-        x36 = scan_output_5 == x35; 
-        x37 = scan_var_8 + y_stride; 
-        x38 = x36 ? x37 : scan_var_8; 
+        x54 = x_max - 16'd1; 
+        x55 = scan_output_5 == x54; 
+        x56 = scan_var_8 + y_stride; 
+        x57 = x55 ? x56 : scan_var_8; 
     end 
 
     always_ff @(posedge clk) begin
-        scan_var_8 <= x38;
+        scan_var_8 <= x57;
     end
 endmodule
 
 module scan9 (
-    output logic [31:0] scan_var_9, 
-    input logic [31:0] scan_output_7,
-    input logic [31:0] scan_output_8,
-    input logic [31:0] offset
+    output logic [15:0] scan_var_9, 
+    input logic [15:0] scan_output_7,
+    input logic [15:0] scan_output_8,
+    input logic [15:0] offset
 );
-    logic [31:0] x14; 
-    logic [31:0] x15; 
+    logic [15:0] x33; 
+    logic [15:0] x34; 
 
     always_comb begin 
-        x14 = scan_output_7 + scan_output_8; 
-        x15 = x14 + offset; 
-        scan_var_9 = x15; 
+        x33 = scan_output_7 + scan_output_8; 
+        x34 = x33 + offset; 
+        scan_var_9 = x34; 
     end 
 endmodule
 

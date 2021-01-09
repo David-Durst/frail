@@ -30,7 +30,7 @@ class Var(AST):
     width: int
 
 
-def var_f(name: str, width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Var:
+def var_f(name: str, width: int = 16, lake_state: LakeDSLState = default_lake_state) -> Var:
     return Var(lake_state.incr(), name, width)
 
 
@@ -40,7 +40,7 @@ class Int(AST):
     width: int
 
 
-def int_f(val: int, bit_width: int = 32, lake_state: LakeDSLState = default_lake_state) -> Int:
+def int_f(val: int, bit_width: int = 16, lake_state: LakeDSLState = default_lake_state) -> Int:
     return Int(lake_state.incr(), val, bit_width)
 
 
@@ -144,7 +144,7 @@ class ScanConstOp(AST):
         return RecurrenceSeq(lake_state.incr(), self.index)
 
 
-def scan_const_f(f: Callable[[Var], Int], width: int = 32, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
+def scan_const_f(f: Callable[[Var], Int], width: int = 16, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
     return ScanConstOp(lake_state.incr(), f, width)
 
 
