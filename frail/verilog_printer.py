@@ -53,7 +53,7 @@ def print_verilog(e: AST,
                   top_name: str = "top",
                   add_step: bool = True):
     global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops
-    global cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
+    global cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable, config_regs
     if root:
         io_ports = {}
         io_strs = {}
@@ -411,25 +411,35 @@ def print_top_level_module(top_module_io: list,
     print(verilog_footer)
 
 def get_kratos_wrapper(config_regs: list):
+
     print(f"""from kratos import *
-    from lake.attributes.config_reg_attr import ConfigRegAttr
-    from lake.attributes.formal_attr import FormalAttr, FormalSignalConstraint
+from lake.attributes.config_reg_attr import ConfigRegAttr
+from lake.attributes.formal_attr import FormalAttr, FormalSignalConstraint
 
 
-    class Addressor(Generator):
+class Addressor(Generator):
 
-        ##########################
-        # Generation             #
-        ##########################
-        def __init__(self,
-                    name):
-            super().__init__(name)
+    ##########################
+    # Generation             #
+    ##########################
+    def __init__(self,
+                name):
+        super().__init__(name)
 
-            self.external = True
+        self.external = True
 
-            self.clk = self.clock("clk")
+        self.clk = self.clock("clk")
 
-            self.step = self.input("step", width = 1)
-            self.addr = self.output("addr", width=16)""")
+        self.step = self.input("step", width = 1)
+        self.addr = self.output("addr", width=16)""")
 
+    if len(config_regs) > 0:
+        print()
+        print(get_tab_strs(2) + "# configuration registers")
+
+    for config in config_regs:
+        print()
+        print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
+        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(ConfigRegAttr("{config.name}"))')
+        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(FormalAttr("self.{config.name}.name, FormalSignalConstraint.SOLVE"))')
     
