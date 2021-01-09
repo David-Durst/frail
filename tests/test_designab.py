@@ -81,6 +81,8 @@ def test_addr_design(
         tester.circuit.y_stride = strides_1
         tester.circuit.offset = starting_addr
 
+    tester.circuit.step = 1
+
     for i in range(min(1000, ranges_0 * ranges_1 - 1)):
         # start with first addr on rising clk edge
         tester.circuit.clk = 1
