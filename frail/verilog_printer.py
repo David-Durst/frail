@@ -10,7 +10,15 @@ class ModulePort:
     input_from_other_scan: bool
 
 tab_str = "    "
+def get_tab_strs(num):
+    final_tab_str = ""
+    for i in range(num):
+        final_tab_str += tab_str
+    return final_tab_str
+
 recurrence_seq_str = "scan_output_"
+step_if_begin = get_tab_strs(2) + "if (step) begin\n"
+step_if_end = get_tab_strs(2) + "end \n"
 io_ports: Dict[int, List[ModulePort]] = {}
 io_strs: Dict[int, str] = {}
 # variables (logic type) used in the combinational block
@@ -37,7 +45,11 @@ def get_var_val(key):
     return key
 
 
-def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_lake_state, top_name: str = "top"):
+def print_verilog(e: AST,
+                  root: bool = True,
+                  lake_state: LakeDSLState = default_lake_state,
+                  top_name: str = "top",
+                  add_step: bool = True):
     global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
     if root:
         io_ports = {}
@@ -153,6 +165,8 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
         io_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
+        if add_step:
+            comb_strs[cur_scan_idx] += step_if_begin
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
@@ -163,19 +177,27 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
             if port.input_dir:
                 io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
             else:
-                add_io_str = tab_str + "input logic clk, \n" + \
+                add_io_str = tab_str + f"input logic clk, \n" + \
                                         tab_str + f"output logic [{port.width - 1}:0] {port.name},\n"
                 io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
-                seq_strs[cur_scan_idx] = tab_str + "always_ff @(posedge clk) begin\n" + \
-                                         tab_str + tab_str + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
+                step_begin = step_if_begin if add_step else ""
+                step_end = step_if_end if add_step else ""
+                seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
+                                         step_begin + \
+                                         get_tab_strs(3) + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
+                                         step_end + \
                                          tab_str + "end\n"
                 read_from_output_port = True
         # if don't read from output ports, need to add it here to list of output ports
         if not read_from_output_port:
             width = get_width(f_res.index, lake_state)
             io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] {cur_scan_lambda_var.name}, \n" + io_strs[cur_scan_idx]
-            comb_strs[cur_scan_idx] += tab_str + tab_str + f"{cur_scan_lambda_var.name} = x{f_res.index}; \n"
+            comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{cur_scan_lambda_var.name} = x{f_res.index}; \n"
             io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False, False))
+        # end step if
+        if add_step:
+            comb_strs[cur_scan_idx] += step_if_end
+        # end always_comb block
         comb_strs[cur_scan_idx] += tab_str + "end \n"
     else:
         assert False, str(e) + "is not a valid frail operator"
@@ -206,20 +228,24 @@ def print_verilog(e: AST, root: bool = True, lake_state: LakeDSLState = default_
                                inter_logics,
                                module_inst_strs,
                                inter_to_check,
-                               k)
+                               k,
+                               add_step)
 
         print_top_level_module(top_module_io,
                                inter_logics,
                                module_inst_strs,
                                inter_to_check,
                                lake_state,
-                               top_name)
+                               top_name,
+                               add_step)
 
         for k in keys:
             if k == -1:
                 continue
 
             print(verilog_header(k))
+            if add_step:
+                print(tab_str +"input logic step,")
             # get rid of comma after last io signal and end io
             print(io_strs[k][:-2] + "\n);")
             print(var_strs[k])
@@ -269,14 +295,15 @@ def print_logic(arg: AST, lake_state: LakeDSLState):
         var_strs[cur_scan_idx] += tab_str + f"logic [{width - 1}:0] x{arg.index}; \n"
 
 def print_assign(arg: AST):
-    comb_strs[cur_scan_idx] += tab_str + tab_str + f"x{arg.index} = "
+    comb_strs[cur_scan_idx] += get_tab_strs(3) + f"x{arg.index} = "
 
 def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                        top_module_io: list,
                        inter_logics: list,
                        module_inst_strs: list,
                        inter_to_check: Dict[str, str],
-                       k: int):
+                       k: int,
+                       add_step: bool):
 
     module_inst_str = ""
     needs_clock = False
@@ -309,12 +336,15 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             if add_to_top not in top_module_io:
                 top_module_io.append(add_to_top)
             inter_str = port.name
-        module_port_str = tab_str + tab_str + f".{port.name}({inter_str}),\n"
+        module_port_str = get_tab_strs(2) + f".{port.name}({inter_str}),\n"
         module_inst_str += module_port_str
+
+    if add_step:
+        module_inst_str = get_tab_strs(2) + ".step(step),\n" + module_inst_str
 
     # wire clk input to module only if clk is an input
     if needs_clock:
-        module_inst_str = tab_str + tab_str + ".clk(clk),\n" + module_inst_str
+        module_inst_str = get_tab_strs(2) + ".clk(clk),\n" + module_inst_str
 
     module_inst_str = tab_str + f"scan{k} scan{k} (\n" + module_inst_str
 
@@ -327,7 +357,8 @@ def print_top_level_module(top_module_io: list,
                            module_inst_strs: list,
                            inter_to_check: Dict[str, str],
                            lake_state: LakeDSLState,
-                           top_name: str):
+                           top_name: str,
+                           add_step: bool):
     global output_scan_index
 
     print(verilog_header(0, top_name) + "\n")
@@ -345,6 +376,10 @@ def print_top_level_module(top_module_io: list,
 
     # sort so that inputs are printed before outputs
     top_module_io = sorted(top_module_io)
+
+    if add_step:
+        top_module_io.insert(0, tab_str + "input logic step,")
+
     # add clk to top level IO as first input
     top_module_io.insert(0, tab_str + "input logic clk,")
 
@@ -365,5 +400,5 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
-    print(tab_str + f"always_comb begin\n{tab_str}{tab_str} addr = scan_inter_{output_scan_index};\n{tab_str}end")
+    print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr = scan_inter_{output_scan_index};\n{tab_str}end")
     print(verilog_footer)
