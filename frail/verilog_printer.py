@@ -262,9 +262,7 @@ def print_verilog(e: AST,
 
             print(seq_strs[k], end='')
             print(verilog_footer)
-
         get_kratos_wrapper(config_regs)
-
 
 def print_arg(arg_index: int, lake_state: LakeDSLState):
     print_verilog(lake_state.program_map[arg_index], False, lake_state)
@@ -419,18 +417,36 @@ from lake.attributes.formal_attr import FormalAttr, FormalSignalConstraint
 
 class Addressor(Generator):
 
-    ##########################
-    # Generation             #
-    ##########################
     def __init__(self,
                 name):
         super().__init__(name)
 
+        # external module with Verilog generated from frail
         self.external = True
 
         self.clk = self.clock("clk")
 
-        self.step = self.input("step", width = 1)
+        self.step = self.input("step", width=1)
+        self.addr = self.output("addr", width=16)""")
+
+    if len(config_regs) > 0:
+        print()
+        print(get_tab_strs(2) + "# configuration registers")
+
+    for config in config_regs:
+        print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
+
+    print()
+
+    print(f"""class AddressorWrapper(Generator):
+
+    def __init__(self,
+                 name):
+        super().__init__(name)
+
+        self.clk = self.clock("clk")
+
+        self.step = self.input("step", width=1)
         self.addr = self.output("addr", width=16)""")
 
     if len(config_regs) > 0:
@@ -441,5 +457,22 @@ class Addressor(Generator):
         print()
         print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
         print(get_tab_strs(2) + f'self.{config.name}.add_attribute(ConfigRegAttr("{config.name}"))')
-        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(FormalAttr("self.{config.name}.name, FormalSignalConstraint.SOLVE"))')
+        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(FormalAttr(self.{config.name}.name, FormalSignalConstraint.SOLVE))')
+
+    print()
+    print(get_tab_strs(2) + f'addressor = Addressor(name)')
+    print(get_tab_strs(2) + f'self.add_child("addressor", addressor,')
+
+    for signal in ("clk", "step", "addr"):
+        print(get_tab_strs(3), f"{signal}=self.{signal},")
+
+    for i in range(len(config_regs)):
+        config = config_regs[i]
+        print_config = get_tab_strs(3) + f"{config.name}=self.{config.name}"
+        if i != len(config_regs) - 1:
+            print_config += ","
+        else:
+            print_config += ")"
+
+        print(print_config)
     

@@ -21,6 +21,111 @@ def create_og_design():
 
 og_design = create_og_design()
 
+def create_og_design_dim(dim, width=16):
+
+    # configuration registers
+    ranges = {}
+    strides = {}
+    for i in range(dim):
+        ranges[i] = var_f(f"range_{i}", width)
+        strides[i] = var_f(f"stride_{i}", width)
+    offset = var_f("offset", width)
+
+    unit_counters = {}
+    unit_counters[0] = scan_const_f(lambda z: if_f(eq_f(z, sub_f(ranges[0], int_f(1))), int_f(0), add_f(z, int_f(1))))
+    for k in range(1, dim):
+        uc = (unit_counters[k - 1]).get_seq()
+        r = ranges[k - 1]
+        unit_counters[k] = scan_const_f(lambda z: if_f(eq_f(uc, sub_f(r, int_f(1))), add_f(z, int_f(1)), z))
+    
+    counters = [scan_const_f(lambda z: if_f(eq_f(unit_counters[0].get_seq(), sub_f(ranges[0], int_f(1))), int_f(0), add_f(z, strides[0])))]
+    for j in range(1, dim):
+        uc = unit_counters[j - 1].get_seq()
+        r = ranges[j - 1]
+        s = strides[j]
+        counters.append(scan_const_f(lambda z: if_f(eq_f(uc, sub_f(r, int_f(1))), add_f(z, s), z)))
+
+
+    add_counters = offset
+    for i in range(dim):
+        add_counters = add_f(counters[i].get_seq(), add_counters)
+    return unit_counters[1] #scan_const_f(lambda z: add_counters)
+
+og_design_dim = create_og_design_dim(6)
+
+""" def create_og_design():
+    dim = 6
+
+    # configuration registers
+    ranges = [var_f(f"range_{i}") for i in range(dim)]
+    strides = [var_f(f"stride_{i}") for i in range(dim)]
+    offset = var_f("offset")
+
+    unit_counters = [scan_const_f(lambda z: if_f(eq_f(z, sub_f(ranges[0], int_f(1))), int_f(0), add_f(z, int_f(1))))]
+    for i in range(1, dim):
+        unit_counters.append(scan_const_f(lambda z: if_f(eq_f(unit_counters[i - 1].get_seq(), sub_f(ranges[i - 1], int_f(1))), add_f(z, int_f(1)), z)))
+    
+    counters = [scan_const_f(lambda z: if_f(eq_f(unit_counters[0].get_seq(), sub_f(ranges[0], int_f(1))), int_f(0), add_f(z, strides[0])))]
+    for i in range(1, dim):
+        counters.append(scan_const_f(lambda z: if_f(eq_f(unit_counters[i - 1].get_seq(), sub_f(ranges[i - 1], int_f(1))), add_f(z, strides[i]), z)))
+
+    add_counters = offset
+    for i in range(dim):
+        add_counters = add_f(counters[i].get_seq(), add_counters)
+    return scan_const_f(lambda z: add_counters)
+
+og_design = create_og_design()
+
+ranges = [var_f(f"range_{i}", width) for i in range(dim)]
+    strides = [var_f(f"stride_{i}", width) for i in range(dim)]
+    offset = var_f("offset", width)
+
+    unit_counters = [scan_const_f(lambda z: if_f(eq_f(z, sub_f(ranges[0], int_f(1))), int_f(0), add_f(z, int_f(1))))]
+    for k in range(1, dim):
+        uc = (unit_counters[k - 1]).get_seq()
+        r = ranges[k - 1]
+        unit_counters.append(scan_const_f(lambda z: if_f(eq_f(uc, sub_f(r, int_f(1))), add_f(z, int_f(1)), z)))
+    
+    counters = [scan_const_f(lambda z: if_f(eq_f(unit_counters[0].get_seq(), sub_f(ranges[0], int_f(1))), int_f(0), add_f(z, strides[0])))]
+    for j in range(1, dim):
+        uc = unit_counters[j - 1].get_seq()
+        r = ranges[j - 1]
+        s = strides[j - 1]
+        counters.append(scan_const_f(lambda z: if_f(eq_f(uc, sub_f(r, int_f(1))), add_f(z, s), z)))
+
+
+    add_counters = offset
+    for i in range(dim):
+        add_counters = add_f(counters[i].get_seq(), add_counters)
+    return unit_counters[1] #scan_const_f(lambda z: add_counters)
+
+og_design6 = create_og_design_dim(6) """
+
+def create_og_design6():
+
+    # configuration registers
+    r0, r1, r2, r3, r4, r5 = var_f("range_0"), var_f("range_1"), var_f("range_2"), var_f("range_3"), var_f("range_4"), var_f("range_5")
+    s0, s1, s2, s3, s4, s5 = var_f("stride_0"), var_f("stride_1"), var_f("stride_2"), var_f("stride_3"), var_f("stride_4"), var_f("stride_5")
+    offset = var_f("offset")
+
+    uc0 = scan_const_f(lambda z: if_f(eq_f(z, sub_f(r0, int_f(1))), int_f(0), add_f(z, int_f(1))))
+    uc1 = scan_const_f(lambda z: if_f(eq_f(uc0.get_seq(), sub_f(r0, int_f(1))), add_f(z, int_f(1)), z))
+    uc2 = scan_const_f(lambda z: if_f(eq_f(uc1.get_seq(), sub_f(r1, int_f(1))), add_f(z, int_f(1)), z))
+    uc3 = scan_const_f(lambda z: if_f(eq_f(uc2.get_seq(), sub_f(r2, int_f(1))), add_f(z, int_f(1)), z))
+    uc4 = scan_const_f(lambda z: if_f(eq_f(uc3.get_seq(), sub_f(r3, int_f(1))), add_f(z, int_f(1)), z))
+    uc5 = scan_const_f(lambda z: if_f(eq_f(uc4.get_seq(), sub_f(r4, int_f(1))), add_f(z, int_f(1)), z))
+
+    c0 = scan_const_f(lambda z: if_f(eq_f(uc0.get_seq(), sub_f(r0, int_f(1))), int_f(0), add_f(z, s0)))
+    c1 = scan_const_f(lambda z: if_f(eq_f(uc0.get_seq(), sub_f(r0, int_f(1))), add_f(z, s1), z))
+    c2 = scan_const_f(lambda z: if_f(eq_f(uc1.get_seq(), sub_f(r1, int_f(1))), add_f(z, s2), z))
+    c3 = scan_const_f(lambda z: if_f(eq_f(uc2.get_seq(), sub_f(r2, int_f(1))), add_f(z, s3), z))
+    c4 = scan_const_f(lambda z: if_f(eq_f(uc3.get_seq(), sub_f(r3, int_f(1))), add_f(z, s4), z))
+    c5 = scan_const_f(lambda z: if_f(eq_f(uc4.get_seq(), sub_f(r4, int_f(1))), add_f(z, s5), z))
+    
+    return scan_const_f(lambda z: add_f(offset, add_f(c0.get_seq(), add_f(c1.get_seq(), add_f(c2.get_seq(), add_f(c3.get_seq(), add_f(c4.get_seq(), c5.get_seq())))))))
+
+og_design6 = create_og_design6()
+
 # optimized addressor design
 def create_op_design():
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))

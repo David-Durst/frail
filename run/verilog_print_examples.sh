@@ -2,7 +2,7 @@
 #python -c 'import frail; print("design b:"); frail.print_frail(frail.design_b); frail.print_verilog(frail.design_b);'
 #python -c 'import frail; print("design a:"); frail.print_frail(frail.design_a); frail.print_verilog(frail.design_a);'
 #python -c 'import frail; frail.print_verilog(frail.design_a, top_name="design_a");'
-python -c 'import frail; frail.print_verilog(frail.og_design, top_name="og_design");'
+python -c 'import frail; frail.print_verilog(frail.og_design6, top_name="og_design6");'
 #python -c 'import frail; frail.print_verilog(frail.op_design, top_name="op_design");'
 #python -c 'import frail; frail.print_verilog(frail.design_b, top_name="design_b");'
 #python -c 'import frail;'

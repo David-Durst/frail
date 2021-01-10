@@ -1,1 +1,1 @@
-python -c 'import frail; print("design b:"); frail.print_frail(frail.design_b); print("design a:"); frail.print_frail(frail.design_a)'
+python -c 'import frail; frail.print_frail(frail.og_design6)'
