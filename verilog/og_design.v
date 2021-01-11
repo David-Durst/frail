@@ -6,7 +6,7 @@ module og_design (
     input logic [15:0] x_max,
     input logic [15:0] x_stride,
     input logic [15:0] y_stride,
-    output logic [15:0] addr
+    output logic [15:0] addr_out
 );
 
     logic [15:0] scan_inter_5;
@@ -48,7 +48,7 @@ module og_design (
     );
 
     always_comb begin
-         addr = scan_inter_9;
+         addr_out = scan_inter_9;
     end
 endmodule
 

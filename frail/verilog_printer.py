@@ -32,6 +32,8 @@ cur_scan_idx: int = -1
 cur_scan_lambda_var: Var = None
 output_scan_index: int = -1
 VarTable: Dict[str, str] = {}
+config_regs: List[AST] = []
+
 def verilog_header(index: int, name: str="scan"):
     if name == "scan":
         return f"module {name}{index} ("
@@ -49,8 +51,10 @@ def print_verilog(e: AST,
                   root: bool = True,
                   lake_state: LakeDSLState = default_lake_state,
                   top_name: str = "top",
-                  add_step: bool = True):
-    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
+                  add_step: bool = True,
+                  get_verilog: bool = True):
+    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops
+    global cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable, config_regs
     if root:
         io_ports = {}
         io_strs = {}
@@ -60,6 +64,7 @@ def print_verilog(e: AST,
         printed_ops = set()
         cur_scan_idx = -1
         output_scan_index = -1
+        config_regs = []
 
     e_type = type(e)
 
@@ -105,6 +110,7 @@ def print_verilog(e: AST,
         if e == cur_scan_lambda_var:
             add_port = ModulePort(e.name, e.width, True, False, False)
         else:
+            config_regs.append(e)
             VarTable[f"x{e.index}"] = str(e.name)
             add_port = ModulePort(e.name, e.width, False, True, False)
         if add_port not in io_ports[cur_scan_idx]:
@@ -219,44 +225,48 @@ def print_verilog(e: AST,
         # needs to come from top level IO
         inter_to_check = {}
 
-        for k in keys:
-            if k == -1:
-                continue
+        if get_verilog:
+            for k in keys:
+                if k == -1:
+                    continue
 
-            mod_str_from_ports(io_ports,
-                               top_module_io,
-                               inter_logics,
-                               module_inst_strs,
-                               inter_to_check,
-                               k,
-                               add_step)
+                mod_str_from_ports(io_ports,
+                                top_module_io,
+                                inter_logics,
+                                module_inst_strs,
+                                inter_to_check,
+                                k,
+                                add_step)
 
-        print_top_level_module(top_module_io,
-                               inter_logics,
-                               module_inst_strs,
-                               inter_to_check,
-                               lake_state,
-                               top_name,
-                               add_step)
+            print_top_level_module(top_module_io,
+                                inter_logics,
+                                module_inst_strs,
+                                inter_to_check,
+                                lake_state,
+                                top_name,
+                                add_step)
 
-        for k in keys:
-            if k == -1:
-                continue
+            for k in keys:
+                if k == -1:
+                    continue
 
-            print(verilog_header(k))
-            if add_step:
-                print(tab_str +"input logic step,")
-            # get rid of comma after last io signal and end io
-            print(io_strs[k][:-2] + "\n);")
-            print(var_strs[k])
-            print(comb_strs[k], end='')
+                print(verilog_header(k))
+                if add_step:
+                    print(tab_str +"input logic step,")
+                # get rid of comma after last io signal and end io
+                print(io_strs[k][:-2] + "\n);")
+                print(var_strs[k])
+                print(comb_strs[k], end='')
 
-            # add a line between combinational and sequential logic blocks
-            if comb_strs[k] != "" and seq_strs[k] != "":
-                print()
+                # add a line between combinational and sequential logic blocks
+                if comb_strs[k] != "" and seq_strs[k] != "":
+                    print()
 
-            print(seq_strs[k], end='')
-            print(verilog_footer)
+                print(seq_strs[k], end='')
+                print(verilog_footer)
+
+        else:
+            get_kratos_wrapper(config_regs)
 
 
 def print_arg(arg_index: int, lake_state: LakeDSLState):
@@ -388,7 +398,7 @@ def print_top_level_module(top_module_io: list,
     top_io_str = ""
     for i in range(len(top_module_io)):
         top_io_str += top_module_io[i] + "\n"
-    top_io_str += tab_str + f"output logic [{lake_state.program_map[output_scan_index].width - 1}:0] addr\n"
+    top_io_str += tab_str + f"output logic [{lake_state.program_map[output_scan_index].width - 1}:0] addr_out\n"
     print(top_io_str + ");\n")
 
     # print intermediate signals to wire up sources
@@ -400,5 +410,75 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
-    print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr = scan_inter_{output_scan_index};\n{tab_str}end")
+    print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr_out = scan_inter_{output_scan_index};\n{tab_str}end")
     print(verilog_footer)
+
+def get_kratos_wrapper(config_regs: list):
+
+    print(f"""from kratos import *
+from lake.attributes.config_reg_attr import ConfigRegAttr
+from lake.attributes.formal_attr import FormalAttr, FormalSignalConstraint
+
+
+class Addressor(Generator):
+
+    def __init__(self,
+                name):
+        super().__init__(name)
+
+        # external module with Verilog generated from frail
+        self.external = True
+
+        self.clk = self.clock("clk")
+
+        self.step = self.input("step", width=1)
+        self.addr_out = self.output("addr_out", width=16)""")
+
+    if len(config_regs) > 0:
+        print()
+        print(get_tab_strs(2) + "# configuration registers")
+
+    for config in config_regs:
+        print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
+
+    print()
+
+    print(f"""class AddressorWrapper(Generator):
+
+    def __init__(self,
+                 name):
+        wrapper_name = name + "_wrapper"
+        super().__init__(wrapper_name)
+
+        self.clk = self.clock("clk")
+
+        self.step = self.input("step", width=1)
+        self.addr_out = self.output("addr_out", width=16)""")
+
+    if len(config_regs) > 0:
+        print()
+        print(get_tab_strs(2) + "# configuration registers")
+
+    for config in config_regs:
+        print()
+        print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
+        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(ConfigRegAttr("{config.name}"))')
+        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(FormalAttr(self.{config.name}.name, FormalSignalConstraint.SOLVE))')
+
+    print()
+    print(get_tab_strs(2) + f'addressor = Addressor(name)')
+    print(get_tab_strs(2) + f'self.add_child("addressor", addressor,')
+
+    for signal in ("clk", "step", "addr_out"):
+        print(get_tab_strs(3), f"{signal}=self.{signal},")
+
+    for i in range(len(config_regs)):
+        config = config_regs[i]
+        print_config = get_tab_strs(3) + f"{config.name}=self.{config.name}"
+        if i != len(config_regs) - 1:
+            print_config += ","
+        else:
+            print_config += ")"
+
+        print(print_config)
+    

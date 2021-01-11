@@ -21,6 +21,7 @@ def create_og_design():
 
 og_design = create_og_design()
 
+
 # optimized addressor design
 def create_op_design():
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
