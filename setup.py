@@ -16,8 +16,7 @@ setup(
     ],
     install_requires=[
         'pysmt',
-        'fault',
-        'lake-aha'
+        'fault'
     ],
     python_requires='>=3.8',
     long_description=long_description,
