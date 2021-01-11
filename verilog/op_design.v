@@ -6,7 +6,7 @@ module op_design (
     input logic [15:0] x_max,
     input logic [15:0] x_stride,
     input logic [15:0] y_stride,
-    output logic [15:0] addr
+    output logic [15:0] addr_out
 );
 
     logic [15:0] scan_inter_10;
@@ -38,7 +38,7 @@ module op_design (
     );
 
     always_comb begin
-         addr = scan_inter_15;
+         addr_out = scan_inter_15;
     end
 endmodule
 
