@@ -51,10 +51,15 @@ def print_verilog(e: AST,
                   root: bool = True,
                   lake_state: LakeDSLState = default_lake_state,
                   top_name: str = "top",
+<<<<<<< HEAD
                   add_step: bool = True,
                   get_verilog: bool = True):
     global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops
     global cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable, config_regs
+=======
+                  add_step: bool = True):
+    global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops, cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable
+>>>>>>> e1c016a5cf74d12aeabf82d7d341330f950bd6de
     if root:
         io_ports = {}
         io_strs = {}
