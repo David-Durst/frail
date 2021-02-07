@@ -10,6 +10,41 @@ x_stride = var_f("x_stride")
 y_stride = var_f("y_stride")
 offset = var_f("offset")
 
+# normal affine
+def create_for_design():
+    x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
+    y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
+    design = scan_const_f(lambda z: add_f(add_f(mul_f(x_unit_counter.get_seq(), x_stride), mul_f(y_unit_counter.get_seq(), y_stride)), offset))
+    return design
+    
+for_design = create_for_design()
+
+x_max = var_f("x_max")
+y_max = var_f("y_max")
+x_stride_0, x_stride_1 = var_f("x_stride_0"), var_f("x_stride_1")
+y_stride_0, y_stride_1 = var_f("y_stride_0"), var_f("y_stride_1")
+offset_0, offset_1, offset_2, offset_3 = var_f("offset_0"), var_f("offset_1"), var_f("offset_2"), var_f("offset_3")
+i0_piece, i1_piece = var_f("i0_piece"), var_f("i1_piece")
+
+# piecewise affine
+def create_piece_design():
+    x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
+    y_unit_counter = scan_const_f(lambda z: if_f(eq_f(x_unit_counter.get_seq(), sub_f(x_max, int_f(1))), add_f(z, int_f(1)), z))
+    design = scan_const_f(lambda z: 
+        if_f(lt_f(x_unit_counter.get_seq(), i0_piece), 
+        # less than i0_piece
+            if_f(lt_f(y_unit_counter.get_seq(), i1_piece), 
+                add_f(add_f(mul_f(x_unit_counter.get_seq(), x_stride_0), mul_f(y_unit_counter.get_seq(), y_stride_0)), offset_0),
+                add_f(add_f(mul_f(x_unit_counter.get_seq(), x_stride_0), mul_f(y_unit_counter.get_seq(), y_stride_1)), offset_1)),
+            if_f(lt_f(y_unit_counter.get_seq(), i1_piece), 
+                add_f(add_f(mul_f(x_unit_counter.get_seq(), x_stride_1), mul_f(y_unit_counter.get_seq(), y_stride_0)), offset_2),
+                add_f(add_f(mul_f(x_unit_counter.get_seq(), x_stride_1), mul_f(y_unit_counter.get_seq(), y_stride_1)), offset_3)),
+        )
+    )
+    return design
+    
+piece_design = create_piece_design()
+
 # original addressor design
 def create_og_design():
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
