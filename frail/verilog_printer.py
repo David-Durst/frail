@@ -163,6 +163,16 @@ def print_verilog(e: AST,
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} == {arg1_str}; \n"
+    elif e_type == LTOp:
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_define_and_assign(e, lake_state)
+        comb_strs[cur_scan_idx] += f"{arg0_str} < {arg1_str}; \n"
+    elif e_type == GTOp:
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_define_and_assign(e, lake_state)
+        comb_strs[cur_scan_idx] += f"{arg0_str} > {arg1_str}; \n"
     elif e_type == ScanConstOp:
         if output_scan_index == -1:
             output_scan_index = e.index

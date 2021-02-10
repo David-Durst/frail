@@ -134,6 +134,20 @@ class EqOp(BinOp):
 def eq_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> EqOp:
     return EqOp(lake_state.incr(), arg0.index, arg1.index)
 
+@dataclass(frozen=True)
+class LTOp(BinOp):
+    width: int = 1
+
+def lt_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> LTOp:
+    return LTOp(lake_state.incr(), arg0.index, arg1.index)
+
+@dataclass(frozen=True)
+class GTOp(BinOp):
+    width: int = 1
+    
+def gt_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> GTOp:
+    return GTOp(lake_state.incr(), arg0.index, arg1.index)
+
 
 @dataclass(frozen=True)
 class ScanConstOp(AST):
