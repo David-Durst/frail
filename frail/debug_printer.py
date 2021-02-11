@@ -50,7 +50,8 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == CounterSeq:
-        VarTable[f"x{e.index}"] = counter_seq_str + str(e.producing_counter) + "[i]"
+        access_str = ".at_max" if e.is_max_signal else ".val"
+        VarTable[f"x{e.index}"] = counter_seq_str + str(e.producing_counter) + access_str + "[i]"
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         print_frail(lake_state.program_map[e.producing_counter], False, lake_state)

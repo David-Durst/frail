@@ -61,7 +61,7 @@ class RecurrenceSeq(AST):
 
 
 def recurrence_seq_f(producing_recurrence: int, lake_state: LakeDSLState = default_lake_state) -> RecurrenceSeq:
-    return Int(lake_state.incr(), producing_recurrence)
+    return RecurrenceSeq(lake_state.incr(), producing_recurrence)
 
 
 @dataclass(eq=True, frozen=True)
@@ -72,7 +72,7 @@ class CounterSeq(AST):
 
 
 def counter_seq_f(producing_counter: int, is_max_signal: bool, lake_state: LakeDSLState = default_lake_state) -> CounterSeq:
-    return Int(lake_state.incr(), is_max_signal, producing_counter)
+    return CounterSeq(lake_state.incr(), producing_counter, is_max_signal)
 
 
 @dataclass(eq=True, frozen=True)
@@ -167,10 +167,10 @@ class CounterOp(AST):
     incr_amount: int
 
     def at_max(self, lake_state: LakeDSLState = default_lake_state):
-        return CounterSeq(lake_state.incr(), True, self.index)
+        return CounterSeq(lake_state.incr(), self.index, True)
 
     def val(self, lake_state: LakeDSLState = default_lake_state):
-        return CounterSeq(lake_state.incr(), False, self.index)
+        return CounterSeq(lake_state.incr(), self.index, False)
 
 
 def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int,

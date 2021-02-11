@@ -86,7 +86,7 @@ def create_counter_design():
     atom_level_3 = counter_f(level2.at_max(), 5, 1)
     level3 = counter_f(level2.at_max(), atom_level_3.at_max(), 2)
     add_design = scan_const_f(lambda  z: add_f(level3.val(), int_f(1)))
-    return level3
+    return add_design
 
 counter_design = create_counter_design()
 
