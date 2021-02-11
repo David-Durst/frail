@@ -4,4 +4,3 @@ from .debug_printer import *
 from .smt_printer import *
 from .smt_utils import *
 from .verilog_printer import print_verilog
-from .replace_counters import *
