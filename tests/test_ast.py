@@ -1,2 +1,2 @@
 from frail import *
-print_frail(counter_design)
+print_verilog(counter_design)

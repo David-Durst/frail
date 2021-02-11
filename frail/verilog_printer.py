@@ -8,6 +8,8 @@ class ModulePort:
     requires_clock: bool
     input_dir: bool
     input_from_other_scan: bool
+    # true if this is the max signal from a counter, false it's the val, None if this is not from a counter
+    counter_max: bool = None
 
 tab_str = "    "
 def get_tab_strs(num):
@@ -17,6 +19,8 @@ def get_tab_strs(num):
     return final_tab_str
 
 recurrence_seq_str = "scan_output_"
+counter_max_output = "counter_at_max_"
+counter_val_output = "counter_val_"
 step_if_begin = get_tab_strs(2) + "if (step) begin\n"
 step_if_end = get_tab_strs(2) + "end \n"
 io_ports: Dict[int, List[ModulePort]] = {}
@@ -128,6 +132,17 @@ def print_verilog(e: AST,
         print_verilog(lake_state.program_map[e.producing_recurrence], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
+    elif e_type == CounterSeq:
+        counter_seq_str = counter_max_output if e.is_max_signal else counter_val_output
+        VarTable[f"x{e.index}"] = counter_seq_str + str(e.producing_counter)
+        width = get_width(e.index, lake_state)
+        io_ports[cur_scan_idx].append(
+            ModulePort(counter_seq_str + str(e.producing_counter), width, False, True, True, e.is_max_signal))
+        old_scan_idx = cur_scan_idx
+        old_scan_lambda_var = cur_scan_lambda_var
+        print_verilog(lake_state.program_map[e.producing_counter], False, lake_state)
+        cur_scan_idx = old_scan_idx
+        cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == AddOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
@@ -173,6 +188,59 @@ def print_verilog(e: AST,
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} > {arg1_str}; \n"
+    elif e_type == CounterOp:
+        if output_scan_index == -1:
+            output_scan_index = e.index
+        cur_scan_idx = e.index
+
+        io_ports[cur_scan_idx] = []
+        # add output port
+        io_ports[cur_scan_idx].append(ModulePort(counter_val_output + str(e.index), 1, True, False, False, False))
+        io_ports[cur_scan_idx].append(ModulePort(counter_max_output + str(e.index), e.width, True, False, False, True))
+        io_strs[cur_scan_idx] = ""
+        var_strs[cur_scan_idx] = ""
+        comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
+        if add_step:
+            comb_strs[cur_scan_idx] += step_if_begin
+        seq_strs[cur_scan_idx] = ""
+        cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
+        if e.prev_level_input is not None:
+            print_verilog(e.prev_level_input, False, lake_state)
+            enable_signal = io_ports[cur_scan_idx][-1].name
+        else:
+            enable_signal = "1b1"
+        if e.is_max_wire:
+            print_verilog(e.max_val, False, lake_state)
+            max_signal = io_ports[cur_scan_idx][-1].name
+        else:
+            max_signal = f"{e.width}d{e.max_val}"
+
+        # logic of checking max output, then incrementing if prev_level_input says so and not at max
+        comb_strs[cur_scan_idx] += f"{counter_max_output}{e.index} = {max_signal}"
+        # what are step?
+        step_begin = step_if_begin if add_step else ""
+        step_end = step_if_end if add_step else ""
+        seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
+                                 step_begin + \
+                                 get_tab_strs(3) + f"{counter_val_output}{e.index} <= {enable_signal} " + \
+                                    f"? ( {max_signal} : {e.width}b0 : {e.width}d{e.incr_amount} ) : " + \
+                                    f"{counter_val_output}{e.index}; \n" + \
+                                 step_end + \
+                                 tab_str + "end\n"
+        # add clk
+        io_strs[cur_scan_idx] += tab_str + f"input logic clk, \n"
+        # if read from output port, write to it in a sequential block. otherwise, just forward to next block
+        # manually added all output fports in this block
+        for port in io_ports[cur_scan_idx]:
+            if port.input_dir:
+                io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
+            else:
+                io_strs[cur_scan_idx] = tab_str + f"output logic [{port.width - 1}:0] {port.name},\n" + io_strs[cur_scan_idx]
+        # end step if
+        if add_step:
+            comb_strs[cur_scan_idx] += step_if_end
+        # end always_comb block
+        comb_strs[cur_scan_idx] += tab_str + "end \n"
     elif e_type == ScanConstOp:
         if output_scan_index == -1:
             output_scan_index = e.index
@@ -298,6 +366,8 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
         return ast_obj.width
     elif isinstance(ast_obj, RecurrenceSeq):
         return get_width(ast_obj.producing_recurrence, lake_state)
+    elif isinstance(ast_obj, CounterSeq):
+        return get_width(ast_obj.producing_counter, lake_state)
     elif isinstance(ast_obj, EqOp):
         return ast_obj
     else:

@@ -165,6 +165,7 @@ class CounterOp(AST):
     max_val: int
     is_max_wire: int
     incr_amount: int
+    width: int
 
     def at_max(self, lake_state: LakeDSLState = default_lake_state):
         return CounterSeq(lake_state.incr(), self.index, True)
@@ -173,11 +174,11 @@ class CounterOp(AST):
         return CounterSeq(lake_state.incr(), self.index, False)
 
 
-def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int,
+def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int, width: int = 32,
               lake_state: LakeDSLState = default_lake_state) -> CounterOp:
     max_val_storage = max_val.index if isinstance(max_val, AST) else max_val
     prev_level_input_storage = prev_level_input.index if prev_level_input is not None else None
-    return CounterOp(lake_state.incr(), prev_level_input_storage, max_val_storage, isinstance(max_val, AST), incr_amount)
+    return CounterOp(lake_state.incr(), prev_level_input_storage, max_val_storage, isinstance(max_val, AST), incr_amount, width)
 
 @dataclass(frozen=True)
 class ScanConstOp(AST):
