@@ -83,6 +83,30 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
         print_let(e)
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " == " + arg1_str + "\n"
+    elif e_type == LTOp:
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_let(e)
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " < " + arg1_str + "\n"
+    elif e_type == GTOp:
+        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        print_let(e)
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + arg0_str + " > " + arg1_str + "\n"
+    elif e_type == CounterOp:
+        cur_scan_idx = e.index
+        scan_strs[cur_scan_idx] = ""
+        cur_scan_lambda_var = var_f("counter_var_" + str(cur_scan_idx))
+        if e.prev_level_input is not None:
+            prev_level_input_str = get_var_val(print_arg(e.prev_level_input, lake_state))
+        else:
+            prev_level_input_str = "None"
+        if e.is_max_wire:
+            max_val_str = get_var_val(print_arg(e.max_val, lake_state))
+        else:
+            max_val_str = str(e.max_val)
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + cur_scan_lambda_var.name + "(" + prev_level_input_str + ", " + \
+                                  max_val_str + "," + str(e.incr_amount) + ")\n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
         scan_strs[cur_scan_idx] = ""

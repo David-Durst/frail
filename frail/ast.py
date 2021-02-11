@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Dict
+from typing import Callable, Dict, Union
 
 
 @dataclass(eq=True, frozen=True)
@@ -148,6 +148,22 @@ class GTOp(BinOp):
 def gt_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> GTOp:
     return GTOp(lake_state.incr(), arg0.index, arg1.index)
 
+@dataclass(frozen=True)
+class CounterOp(AST):
+    prev_level_input: int
+    max_val: int
+    is_max_wire: int
+    incr_amount: int
+
+    def get_seq(self, lake_state: LakeDSLState = default_lake_state):
+        return RecurrenceSeq(lake_state.incr(), self.index)
+
+
+def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int,
+              lake_state: LakeDSLState = default_lake_state) -> CounterOp:
+    max_val_storage = max_val.index if isinstance(max_val, AST) else max_val
+    prev_level_input_storage = prev_level_input.index if prev_level_input is not None else None
+    return CounterOp(lake_state.incr(), prev_level_input_storage, max_val_storage, isinstance(max_val, AST), incr_amount)
 
 @dataclass(frozen=True)
 class ScanConstOp(AST):

@@ -80,6 +80,13 @@ piecewise_addr_design = create_piecewise_addr_design()
 
 # END OF LAKE DESIGNS
 
+def create_counter_design():
+    level1 = counter_f(None, 5, 1)
+    level2 = counter_f(level1.get_seq(), 10, 2)
+    return level2
+
+counter_design = create_counter_design()
+
 # original addressor design
 def create_og_design():
     x_unit_counter = scan_const_f(lambda z: if_f(eq_f(z, sub_f(x_max, int_f(1))), int_f(0), add_f(z, int_f(1))))
