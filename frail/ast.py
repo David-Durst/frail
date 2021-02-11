@@ -65,6 +65,17 @@ def recurrence_seq_f(producing_recurrence: int, lake_state: LakeDSLState = defau
 
 
 @dataclass(eq=True, frozen=True)
+class CounterSeq(AST):
+    producing_counter: int
+    # true if is_max signal, false if just value signal
+    is_max_signal: int
+
+
+def counter_seq_f(producing_counter: int, is_max_signal: bool, lake_state: LakeDSLState = default_lake_state) -> CounterSeq:
+    return Int(lake_state.incr(), is_max_signal, producing_counter)
+
+
+@dataclass(eq=True, frozen=True)
 class BinOp(AST):
     arg0_index: int
     arg1_index: int
@@ -155,8 +166,11 @@ class CounterOp(AST):
     is_max_wire: int
     incr_amount: int
 
-    def get_seq(self, lake_state: LakeDSLState = default_lake_state):
-        return RecurrenceSeq(lake_state.incr(), self.index)
+    def at_max(self, lake_state: LakeDSLState = default_lake_state):
+        return CounterSeq(lake_state.incr(), True, self.index)
+
+    def val(self, lake_state: LakeDSLState = default_lake_state):
+        return CounterSeq(lake_state.incr(), False, self.index)
 
 
 def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int,

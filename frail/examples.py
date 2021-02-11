@@ -82,9 +82,10 @@ piecewise_addr_design = create_piecewise_addr_design()
 
 def create_counter_design():
     level1 = counter_f(None, 5, 1)
-    level2 = counter_f(level1.get_seq(), 10, 2)
-    atom_level_3 = counter_f(level2.get_seq(), 5, 1)
-    level3 = counter_f(level2.get_seq(), atom_level_3.get_seq(), 2)
+    level2 = counter_f(level1.at_max(), 10, 2)
+    atom_level_3 = counter_f(level2.at_max(), 5, 1)
+    level3 = counter_f(level2.at_max(), atom_level_3.at_max(), 2)
+    add_design = scan_const_f(lambda  z: add_f(level3.val(), int_f(1)))
     return level3
 
 counter_design = create_counter_design()
