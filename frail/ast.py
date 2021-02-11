@@ -65,6 +65,15 @@ def recurrence_seq_f(producing_recurrence: int, lake_state: LakeDSLState = defau
 
 
 @dataclass(eq=True, frozen=True)
+class CounterSeq(AST):
+    producing_counter: int
+
+
+def counter_seq_f(producing_counter: int, lake_state: LakeDSLState = default_lake_state) -> CounterSeq:
+    return Int(lake_state.incr(), producing_counter)
+
+
+@dataclass(eq=True, frozen=True)
 class BinOp(AST):
     arg0_index: int
     arg1_index: int
@@ -156,7 +165,7 @@ class CounterOp(AST):
     incr_amount: int
 
     def get_seq(self, lake_state: LakeDSLState = default_lake_state):
-        return RecurrenceSeq(lake_state.incr(), self.index)
+        return CounterSeq(lake_state.incr(), self.index)
 
 
 def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int,
