@@ -182,14 +182,14 @@ def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: int,
 
 @dataclass(frozen=True)
 class ScanConstOp(AST):
-    f: Callable[[Var], Int]
+    f: Callable[[Var], AST]
     width: int
 
     def get_seq(self, lake_state: LakeDSLState = default_lake_state):
         return RecurrenceSeq(lake_state.incr(), self.index)
 
 
-def scan_const_f(f: Callable[[Var], Int], width: int = 16, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
+def scan_const_f(f: Callable[[Var], AST], width: int = 16, lake_state: LakeDSLState = default_lake_state) -> ScanConstOp:
     return ScanConstOp(lake_state.incr(), f, width)
 
 

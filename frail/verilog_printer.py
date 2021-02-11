@@ -205,25 +205,25 @@ def print_verilog(e: AST,
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         if e.prev_level_input is not None:
-            print_verilog(e.prev_level_input, False, lake_state)
+            print_verilog(lake_state.program_map[e.prev_level_input], False, lake_state)
             enable_signal = io_ports[cur_scan_idx][-1].name
         else:
-            enable_signal = "1b1"
+            enable_signal = "1'b1"
         if e.is_max_wire:
-            print_verilog(e.max_val, False, lake_state)
+            print_verilog(lake_state.program_map[e.max_val], False, lake_state)
             max_signal = io_ports[cur_scan_idx][-1].name
         else:
-            max_signal = f"{e.width}d{e.max_val}"
+            max_signal = f"{e.width}'d{e.max_val}"
 
         # logic of checking max output, then incrementing if prev_level_input says so and not at max
-        comb_strs[cur_scan_idx] += f"{counter_max_output}{e.index} = {max_signal}"
+        comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal};\n"
         # what are step?
         step_begin = step_if_begin if add_step else ""
         step_end = step_if_end if add_step else ""
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
                                  step_begin + \
                                  get_tab_strs(3) + f"{counter_val_output}{e.index} <= {enable_signal} " + \
-                                    f"? ( {max_signal} : {e.width}b0 : {e.width}d{e.incr_amount} ) : " + \
+                                    f"? ( {counter_max_output}{e.index} ? {e.width}'b0 : {e.width}'d{e.incr_amount} ) : " + \
                                     f"{counter_val_output}{e.index}; \n" + \
                                  step_end + \
                                  tab_str + "end\n"
