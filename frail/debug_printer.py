@@ -3,7 +3,6 @@ from typing import Set, Dict
 
 indent_str = "  "
 recurrence_seq_str = "scan_func"
-counter_seq_str = "counter_func"
 scan_strs: Dict[int, str] = {}
 printed_ops: Set[int] = set()
 cur_scan_idx: int = -1
@@ -47,13 +46,6 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
         print_frail(lake_state.program_map[e.producing_recurrence], False, lake_state)
-        cur_scan_idx = old_scan_idx
-        cur_scan_lambda_var = old_scan_lambda_var
-    elif e_type == CounterSeq:
-        VarTable[f"x{e.index}"] = counter_seq_str + str(e.producing_counter) + "[i]"
-        old_scan_idx = cur_scan_idx
-        old_scan_lambda_var = cur_scan_lambda_var
-        print_frail(lake_state.program_map[e.producing_counter], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == AddOp:
@@ -113,9 +105,9 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
             max_val_str = get_var_val(print_arg(e.max_val, lake_state))
         else:
             max_val_str = str(e.max_val)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + counter_seq_str  + str(e.index) + \
-                                  "(" + prev_level_input_str + "," + \
-                                  max_val_str + "," + str(e.incr_amount) + ")\n"
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + recurrence_seq_str + str(e.index) + \
+                                  "(counter(" + prev_level_input_str + "," + \
+                                  max_val_str + "," + str(e.incr_amount) + "))\n"
     elif e_type == ScanConstOp:
         cur_scan_idx = e.index
         scan_strs[cur_scan_idx] = ""
