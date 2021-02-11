@@ -116,4 +116,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(True, "piecewise_addr_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(True, "counter_design")#, 0, 15, 20, 12, 15)

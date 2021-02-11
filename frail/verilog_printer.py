@@ -227,8 +227,7 @@ def print_verilog(e: AST,
                                     f"{counter_val_output}{e.index}; \n" + \
                                  step_end + \
                                  tab_str + "end\n"
-        # add clk
-        io_strs[cur_scan_idx] += tab_str + f"input logic clk, \n"
+
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
         # manually added all output fports in this block
         for port in io_ports[cur_scan_idx]:
@@ -236,6 +235,8 @@ def print_verilog(e: AST,
                 io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
             else:
                 io_strs[cur_scan_idx] = tab_str + f"output logic [{port.width - 1}:0] {port.name},\n" + io_strs[cur_scan_idx]
+        # add clk
+        io_strs[cur_scan_idx] += tab_str + f"input logic clk \n"
         # end step if
         if add_step:
             comb_strs[cur_scan_idx] += step_if_end
