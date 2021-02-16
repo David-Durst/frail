@@ -102,18 +102,18 @@ def test_addr_design(
         tester.step(2)
         tester.eval()
         model_ag.step()
-        tester.circuit.addr_out.expect(model_ag.get_address())
-        # print(model_ag.get_address())
+        # tester.circuit.addr_out.expect(model_ag.get_address())
+        print(model_ag.get_address())
 
     with tempfile.TemporaryDirectory() as tempdir:
-        # tempdir = design
+        tempdir = design
         shutil.copy(f"{frail_dir}/verilog/{design}.v", tempdir)
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
                                skip_compile=True,
-                               flags=["-Wno-fatal"])
-                               # flags=["-Wno-fatal", "--trace"])
+                               # flags=["-Wno-fatal"])
+                               flags=["-Wno-fatal", "--trace"])
 
 
 if __name__ == "__main__":
-    test_addr_design(True, "counter_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(False, "counter_design")#, 0, 15, 20, 12, 15)

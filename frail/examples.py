@@ -81,12 +81,10 @@ piecewise_addr_design = create_piecewise_addr_design()
 # END OF LAKE DESIGNS
 
 def create_counter_design():
-    level1 = counter_f(None, 5, 1)
-    level2 = counter_f(level1.at_max(), 10, 2)
-    atom_level_3 = counter_f(level2.at_max(), 5, 1)
-    level3 = counter_f(level2.at_max(), atom_level_3.at_max(), 2)
-    add_design = scan_const_f(lambda  z: add_f(level3.val(), int_f(1)))
-    return add_design
+    level1 = counter_f(None, x_max, 1)
+    #level2 = counter_f(level1.at_max(), y_max, 1)
+    #add_design = scan_const_f(lambda z: add_f(offset, add_f(mul_f(level1.val(), x_stride), mul_f(level2.val(), y_stride))))
+    return scan_const_f(lambda z: level1.val()) #add_design
 
 counter_design = create_counter_design()
 
