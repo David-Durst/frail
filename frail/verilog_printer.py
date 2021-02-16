@@ -200,8 +200,6 @@ def print_verilog(e: AST,
         io_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
-        if add_step:
-            comb_strs[cur_scan_idx] += step_if_begin
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         if e.prev_level_input is not None:
@@ -237,9 +235,6 @@ def print_verilog(e: AST,
                 io_strs[cur_scan_idx] = tab_str + f"output logic [{port.width - 1}:0] {port.name},\n" + io_strs[cur_scan_idx]
         # add clk
         io_strs[cur_scan_idx] += tab_str + f"input logic clk \n"
-        # end step if
-        if add_step:
-            comb_strs[cur_scan_idx] += step_if_end
         # end always_comb block
         comb_strs[cur_scan_idx] += tab_str + "end \n"
     elif e_type == ScanConstOp:
@@ -250,8 +245,6 @@ def print_verilog(e: AST,
         io_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
-        if add_step:
-            comb_strs[cur_scan_idx] += step_if_begin
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
@@ -279,9 +272,6 @@ def print_verilog(e: AST,
             io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] {cur_scan_lambda_var.name}, \n" + io_strs[cur_scan_idx]
             comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{cur_scan_lambda_var.name} = {get_var_val('x' + str(f_res.index))}; \n"
             io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False, False))
-        # end step if
-        if add_step:
-            comb_strs[cur_scan_idx] += step_if_end
         # end always_comb block
         comb_strs[cur_scan_idx] += tab_str + "end \n"
     else:
