@@ -214,7 +214,7 @@ def print_verilog(e: AST,
             max_signal = f"{e.width}'d{e.max_val}"
 
         # logic of checking max output, then incrementing if prev_level_input says so and not at max
-        comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal};\n"
+        comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
         # what are step?
         step_begin = step_if_begin if add_step else ""
         step_end = step_if_end if add_step else ""
