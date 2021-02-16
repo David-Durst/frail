@@ -491,7 +491,10 @@ def print_top_level_module(top_module_io: list,
     # print module instances
     for mod in module_inst_strs:
         print(mod)
-    print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr_out = scan_inter_{output_scan_index};\n{tab_str}end")
+    if isinstance(lake_state.program_map[output_scan_index], CounterOp):
+        print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr_out = counter_val_{output_scan_index};\n{tab_str}end")
+    else:
+        print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr_out = scan_inter_{output_scan_index};\n{tab_str}end")
     print(verilog_footer)
 
 def get_kratos_wrapper(config_regs: list):
