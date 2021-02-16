@@ -269,7 +269,7 @@ def print_verilog(e: AST,
                 step_end = step_if_end if add_step else ""
                 seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
                                          step_begin + \
-                                         get_tab_strs(3) + f"{cur_scan_lambda_var.name} <= x{f_res.index};\n" + \
+                                         get_tab_strs(3) + f"{cur_scan_lambda_var.name} <= {get_var_val('x' + str(f_res.index))};\n" + \
                                          step_end + \
                                          tab_str + "end\n"
                 read_from_output_port = True
@@ -277,7 +277,7 @@ def print_verilog(e: AST,
         if not read_from_output_port:
             width = get_width(f_res.index, lake_state)
             io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] {cur_scan_lambda_var.name}, \n" + io_strs[cur_scan_idx]
-            comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{cur_scan_lambda_var.name} = x{f_res.index}; \n"
+            comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{cur_scan_lambda_var.name} = {get_var_val('x' + str(f_res.index))}; \n"
             io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False, False))
         # end step if
         if add_step:
