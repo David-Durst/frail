@@ -90,7 +90,7 @@ def create_affine_counter_design():
     level1 = counter_f(None, x_max, 1)
     level2 = counter_f(level1.at_max(), y_max, 1)
     add_design = scan_const_f(lambda z: add_f(offset, add_f(mul_f(level1.val(), x_stride), mul_f(level2.val(), y_stride))))
-    return level2.val() #add_design
+    return add_design
 
 counter_design = create_affine_counter_design()
 
