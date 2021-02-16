@@ -126,7 +126,7 @@ def print_frail(e: AST, root: bool = True, lake_state: LakeDSLState = default_la
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + ": \n"
         f_res = e.f(cur_scan_lambda_var)
         print_frail(f_res, False, lake_state)
-        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "return x" + str(f_res.index)
+        scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + indent_str + "return " + get_var_val('x' + str(f_res.index))
         scan_strs[cur_scan_idx] = scan_strs[cur_scan_idx] + "\n, " + str(e.width) +")\n"
     else:
         assert False, str(e) + "is not a valid frail operator"
