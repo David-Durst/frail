@@ -222,8 +222,10 @@ def print_verilog(e: AST,
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
                                  step_begin + \
                                  get_tab_strs(3) + \
-                                    f"{counter_val_output}{e.index} <= {counter_max_output}{e.index} " + \
-                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {e.width}'d{e.incr_amount}; \n" + \
+                                    f"{counter_val_output}{e.index} <= {enable_signal} ? " +\
+                                    f"({counter_max_output}{e.index} " + \
+                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {e.width}'d{e.incr_amount})" + \
+                                    f": {counter_val_output}{e.index}; \n" + \
                                  step_end + \
                                  tab_str + "end\n"
 
