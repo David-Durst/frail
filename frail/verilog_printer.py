@@ -23,6 +23,7 @@ counter_max_output = "counter_at_max_"
 counter_val_output = "counter_val_"
 step_if_begin = get_tab_strs(2) + "if (step) begin\n"
 step_if_end = get_tab_strs(2) + "end \n"
+
 io_ports: Dict[int, List[ModulePort]] = {}
 io_strs: Dict[int, str] = {}
 # variables (logic type) used in the combinational block
@@ -71,7 +72,7 @@ def print_verilog(e: AST,
         config_regs = []
 
     e_type = type(e)
-
+    
     if e.index in printed_ops:
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
@@ -219,12 +220,20 @@ def print_verilog(e: AST,
         step_begin = step_if_begin if add_step else ""
         step_end = step_if_end if add_step else ""
         
+        if isinstance(e.incr_amount, Int):
+            incr_amount = f"{e.width}'d{e.incr_amount.val}"
+        elif isinstance(e.incr_amount, Var):
+            incr_amount = e.incr_amount.name
+            io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
+        else:
+            assert False, "Not a valid type for value to increment counter by."
+
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
                                  step_begin + \
                                  get_tab_strs(3) + \
                                     f"{counter_val_output}{e.index} <= {enable_signal} ? " +\
                                     f"({counter_max_output}{e.index} " + \
-                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {e.width}'d{e.incr_amount})" + \
+                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {incr_amount})" + \
                                     f": {counter_val_output}{e.index}; \n" + \
                                  step_end + \
                                  tab_str + "end\n"
