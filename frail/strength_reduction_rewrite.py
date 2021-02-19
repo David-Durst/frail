@@ -38,6 +38,8 @@ cur_scan_lambda_var: Var = None
 output_scan_index: int = -1
 VarTable: Dict[str, str] = {}
 config_regs: List[AST] = []
+to_delete: List[int] = []
+mul_list = {}
 
 def verilog_header(index: int, name: str="scan"):
     if name == "scan":
@@ -52,14 +54,16 @@ def get_var_val(key):
     return key
 
 
-def print_verilog(e: AST,
-                  root: bool = True,
-                  lake_state: LakeDSLState = default_lake_state,
-                  top_name: str = "top",
-                  add_step: bool = True,
-                  get_verilog: bool = True):
+def strength_reduction_rewrite(e: AST,
+                               root: bool = True,
+                               lake_state: LakeDSLState = default_lake_state,
+                               top_name: str = "top",
+                               add_step: bool = True,
+                               get_verilog: bool = True):
     global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops
     global cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable, config_regs
+    global to_delete, mul_list
+
     if root:
         io_ports = {}
         io_strs = {}
@@ -70,9 +74,10 @@ def print_verilog(e: AST,
         cur_scan_idx = -1
         output_scan_index = -1
         config_regs = []
+        to_delete = []
 
     e_type = type(e)
-    print(e.index, e)
+    print("INFO", cur_scan_idx, e_type)
     if e.index in printed_ops:
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
@@ -110,38 +115,17 @@ def print_verilog(e: AST,
     if not seq_strs:
         seq_strs[-1] = ""
 
-    if e_type == Var:
-        # don't redefine the scan's lambda variable
-        if e == cur_scan_lambda_var:
-            add_port = ModulePort(e.name, e.width, True, False, False)
-        else:
-            config_regs.append(e)
-            VarTable[f"x{e.index}"] = str(e.name)
-            add_port = ModulePort(e.name, e.width, False, True, False)
-        if add_port not in io_ports[cur_scan_idx]:
-            io_ports[cur_scan_idx].append(add_port)
-    elif e_type == Int:
-        VarTable[f"x{e.index}"] = str(e.width) + "'d" + str(e.val)
-    elif e_type == Bool:
-        VarTable[f"x{e.index}"] = "1'b1" if e.val else "1'b0"
-    elif e_type == RecurrenceSeq:
-        VarTable[f"x{e.index}"] = recurrence_seq_str + str(e.producing_recurrence)
-        width = get_width(e.index, lake_state)
-        io_ports[cur_scan_idx].append(ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True))
+    replace_counter = None
+    if e_type == RecurrenceSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        print_verilog(lake_state.program_map[e.producing_recurrence], False, lake_state)
+        strength_reduction_rewrite(lake_state.program_map[e.producing_recurrence], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == CounterSeq:
-        counter_seq_str = counter_max_output if e.is_max_signal else counter_val_output
-        VarTable[f"x{e.index}"] = counter_seq_str + str(e.producing_counter)
-        width = get_width(e.index, lake_state)
-        io_ports[cur_scan_idx].append(
-            ModulePort(counter_seq_str + str(e.producing_counter), width, False, True, True, e.is_max_signal))
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        print_verilog(lake_state.program_map[e.producing_counter], False, lake_state)
+        strength_reduction_rewrite(lake_state.program_map[e.producing_counter], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == AddOp:
@@ -155,10 +139,35 @@ def print_verilog(e: AST,
         print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} - {arg1_str}; \n"
     elif e_type == MulOp:
-        arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
-        arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        print_define_and_assign(e, lake_state)
-        comb_strs[cur_scan_idx] += f"{arg0_str} * {arg1_str}; \n"
+        # print(type(lake_state.program_map[e.arg0_index]))
+        # print(type(lake_state.program_map[e.arg1_index]))
+        if isinstance(lake_state.program_map[e.arg0_index], CounterSeq):
+            replace_counter = e.arg0_index
+            replace_arg = 0
+        elif isinstance(lake_state.program_map[e.arg1_index], CounterSeq):
+            replace_counter = e.arg1_index
+            replace_arg = 1
+        if replace_counter is not None:
+            og_counter_op = lake_state.program_map[lake_state.program_map[replace_counter].producing_counter]
+            incr_amount_index = e.arg0_index if replace_arg == 1 else e.arg1_index
+            incr_amount_op = lake_state.program_map[incr_amount_index]
+            new_index = lake_state.incr()
+            lake_state.program_map[new_index] = \
+                counter_f(og_counter_op.prev_level_input, og_counter_op.at_max(), incr_amount_op)
+            """ CounterOp(index=new_index,
+                        prev_level_input=og_counter_op.prev_level_input,
+                        max_val=og_counter_op.at_max(),
+                        is_max_wire=True,
+                        incr_amount=incr_amount_op,
+                        width=og_counter_op.width) """
+            to_delete.append(e.index)
+            mul_list[e.index] = new_index
+        else:
+            arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
+            arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+            print_define_and_assign(e, lake_state)
+            VarTable[f"x_{e.index}"] = f"{arg0_str} * {arg1_str}; \n"
+            comb_strs[cur_scan_idx] += VarTable[f"x_{e.index}"]
     elif e_type == ModOp:
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
@@ -204,12 +213,12 @@ def print_verilog(e: AST,
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         if e.prev_level_input is not None:
-            print_verilog(lake_state.program_map[e.prev_level_input], False, lake_state)
+            strength_reduction_rewrite(lake_state.program_map[e.prev_level_input], False, lake_state)
             enable_signal = io_ports[cur_scan_idx][-1].name
         else:
             enable_signal = "1'b1"
         if e.is_max_wire:
-            print_verilog(lake_state.program_map[e.max_val], False, lake_state)
+            strength_reduction_rewrite(lake_state.program_map[e.max_val], False, lake_state)
             max_signal = io_ports[cur_scan_idx][-1].name
         else:
             max_signal = f"{e.width}'d{e.max_val}"
@@ -220,20 +229,12 @@ def print_verilog(e: AST,
         step_begin = step_if_begin if add_step else ""
         step_end = step_if_end if add_step else ""
         
-        if isinstance(e.incr_amount, Int):
-            incr_amount = f"{e.width}'d{e.incr_amount.val}"
-        elif isinstance(e.incr_amount, Var):
-            incr_amount = e.incr_amount.name
-            io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
-        else:
-            assert False, "Not a valid type for value to increment counter by."
-
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
                                  step_begin + \
                                  get_tab_strs(3) + \
                                     f"{counter_val_output}{e.index} <= {enable_signal} ? " +\
                                     f"({counter_max_output}{e.index} " + \
-                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {incr_amount})" + \
+                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {e.width}'d{e.incr_amount})" + \
                                     f": {counter_val_output}{e.index}; \n" + \
                                  step_end + \
                                  tab_str + "end\n"
@@ -253,105 +254,29 @@ def print_verilog(e: AST,
         if output_scan_index == -1:
             output_scan_index = e.index
         cur_scan_idx = e.index
-        io_ports[cur_scan_idx] = []
-        io_strs[cur_scan_idx] = ""
-        var_strs[cur_scan_idx] = ""
-        comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
-        seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
-        print_verilog(f_res, False, lake_state)
-        # if read from output port, write to it in a sequential block. otherwise, just forward to next block
-        read_from_output_port = False
-        for port in io_ports[cur_scan_idx]:
-            if port.input_dir:
-                io_strs[cur_scan_idx] += tab_str + f"input logic [{port.width - 1}:0] {port.name},\n"
-            else:
-                add_io_str = tab_str + f"input logic clk, \n" + \
-                                        tab_str + f"output logic [{port.width - 1}:0] {port.name},\n"
-                io_strs[cur_scan_idx] = add_io_str + io_strs[cur_scan_idx]
-                step_begin = step_if_begin if add_step else ""
-                step_end = step_if_end if add_step else ""
-                seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
-                                         step_begin + \
-                                         get_tab_strs(3) + f"{cur_scan_lambda_var.name} <= {get_var_val('x' + str(f_res.index))};\n" + \
-                                         step_end + \
-                                         tab_str + "end\n"
-                read_from_output_port = True
-        # if don't read from output ports, need to add it here to list of output ports
-        if not read_from_output_port:
-            width = get_width(f_res.index, lake_state)
-            io_strs[cur_scan_idx] = tab_str + f"output logic [{width - 1}:0] {cur_scan_lambda_var.name}, \n" + io_strs[cur_scan_idx]
-            comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{cur_scan_lambda_var.name} = {get_var_val('x' + str(f_res.index))}; \n"
-            io_ports[cur_scan_idx].append(ModulePort(cur_scan_lambda_var.name, width, False, False, False))
-        # end always_comb block
-        comb_strs[cur_scan_idx] += tab_str + "end \n"
-    else:
-        assert False, str(e) + "is not a valid frail operator"
+        
+        res, state = strength_reduction_rewrite(f_res, False, lake_state)
+        lake_state = state
+        print("RES", res)
+        print(lake_state.program_map[cur_scan_idx])
+        lake_state.program_map[cur_scan_idx] = scan_const_f(lambda z: res)
+        print(lake_state.program_map[cur_scan_idx])
 
     if root:
-        keys = sorted(comb_strs.keys())
+        for d in to_delete:
+            del lake_state.program_map[d]
+        # for k in lake_state.program_map.keys():
+            # print(lake_state.program_map[k])
 
-        # IO for top wrapper module
-        top_module_io = []
-        # intermediate signal declarations for sources
-        # and sinks between module instances
-        inter_logics = []
-        # strings instantiating modules and wiring up
-        # module IO
-        module_inst_strs = []
-        # signals that are inputs to modules that need
-        # to be later checked to determine if source
-        # comes from another module instantiation or
-        # needs to come from top level IO
-        inter_to_check = {}
-
-        if get_verilog:
-            for k in keys:
-                if k == -1:
-                    continue
-
-                mod_str_from_ports(io_ports,
-                                top_module_io,
-                                inter_logics,
-                                module_inst_strs,
-                                inter_to_check,
-                                k,
-                                add_step)
-
-            print_top_level_module(top_module_io,
-                                inter_logics,
-                                module_inst_strs,
-                                inter_to_check,
-                                lake_state,
-                                top_name,
-                                add_step)
-
-            for k in keys:
-                if k == -1:
-                    continue
-
-                print(verilog_header(k))
-                if add_step:
-                    print(tab_str +"input logic step,")
-                # get rid of comma after last io signal and end io
-                print(io_strs[k][:-2] + "\n);")
-                print(var_strs[k])
-                print(comb_strs[k], end='')
-
-                # add a line between combinational and sequential logic blocks
-                if comb_strs[k] != "" and seq_strs[k] != "":
-                    print()
-
-                print(seq_strs[k], end='')
-                print(verilog_footer)
-
-        else:
-            get_kratos_wrapper(config_regs)
+    if replace_counter is not None:
+        return lake_state.program_map[new_index], lake_state
+    return e, lake_state
 
 
 def print_arg(arg_index: int, lake_state: LakeDSLState):
-    print_verilog(lake_state.program_map[arg_index], False, lake_state)
+    strength_reduction_rewrite(lake_state.program_map[arg_index], False, lake_state)
     if arg_index == cur_scan_lambda_var.index:
         return cur_scan_lambda_var.name
     else:
@@ -498,73 +423,3 @@ def print_top_level_module(top_module_io: list,
     else:
         print(tab_str + f"always_comb begin\n{get_tab_strs(2)} addr_out = scan_inter_{output_scan_index};\n{tab_str}end")
     print(verilog_footer)
-
-def get_kratos_wrapper(config_regs: list):
-
-    print(f"""from kratos import *
-from lake.attributes.config_reg_attr import ConfigRegAttr
-from lake.attributes.formal_attr import FormalAttr, FormalSignalConstraint
-
-
-class Addressor(Generator):
-
-    def __init__(self,
-                name):
-        super().__init__(name)
-
-        # external module with Verilog generated from frail
-        self.external = True
-
-        self.clk = self.clock("clk")
-
-        self.step = self.input("step", width=1)
-        self.addr_out = self.output("addr_out", width=16)""")
-
-    if len(config_regs) > 0:
-        print()
-        print(get_tab_strs(2) + "# configuration registers")
-
-    for config in config_regs:
-        print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
-
-    print()
-
-    print(f"""class AddressorWrapper(Generator):
-
-    def __init__(self,
-                 name):
-        wrapper_name = name + "_wrapper"
-        super().__init__(wrapper_name)
-
-        self.clk = self.clock("clk")
-
-        self.step = self.input("step", width=1)
-        self.addr_out = self.output("addr_out", width=16)""")
-
-    if len(config_regs) > 0:
-        print()
-        print(get_tab_strs(2) + "# configuration registers")
-
-    for config in config_regs:
-        print()
-        print(get_tab_strs(2) + f'self.{config.name} = self.input("{config.name}", width={config.width})')
-        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(ConfigRegAttr("{config.name}"))')
-        print(get_tab_strs(2) + f'self.{config.name}.add_attribute(FormalAttr(self.{config.name}.name, FormalSignalConstraint.SOLVE))')
-
-    print()
-    print(get_tab_strs(2) + f'addressor = Addressor(name)')
-    print(get_tab_strs(2) + f'self.add_child("addressor", addressor,')
-
-    for signal in ("clk", "step", "addr_out"):
-        print(get_tab_strs(3), f"{signal}=self.{signal},")
-
-    for i in range(len(config_regs)):
-        config = config_regs[i]
-        print_config = get_tab_strs(3) + f"{config.name}=self.{config.name}"
-        if i != len(config_regs) - 1:
-            print_config += ","
-        else:
-            print_config += ")"
-
-        print(print_config)
-    
