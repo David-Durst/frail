@@ -173,17 +173,10 @@ def strength_reduction_rewrite(e: AST,
             output_scan_index = e.index
         cur_scan_idx = e.index
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
-        print("CUR SCAN", cur_scan_lambda_var)
-        if isinstance(e.f, AST):
-            f_res = e.f
-        else:
-            f_res = e.f(cur_scan_lambda_var)
-        print(f_res)
+        f_res = e.f(cur_scan_lambda_var)
         e_ret = strength_reduction_rewrite(f_res, False, lake_state)
         if isinstance(e_ret, CounterOp):
             e = e_ret
-        else:
-            e.f = e_ret
 
     if root:
         return e
