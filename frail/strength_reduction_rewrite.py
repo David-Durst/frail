@@ -38,7 +38,6 @@ cur_scan_lambda_var: Var = None
 output_scan_index: int = -1
 VarTable: Dict[str, str] = {}
 config_regs: List[AST] = []
-to_delete: List[int] = []
 mul_list = {}
 
 def verilog_header(index: int, name: str="scan"):
@@ -62,7 +61,7 @@ def strength_reduction_rewrite(e: AST,
                                get_verilog: bool = True):
     global io_ports, io_strs, var_strs, comb_strs, seq_strs, printed_ops
     global cur_scan_idx, output_scan_index, cur_scan_lambda_var, VarTable, config_regs
-    global to_delete, mul_list
+    global mul_list
 
     if root:
         io_ports = {}
@@ -74,10 +73,10 @@ def strength_reduction_rewrite(e: AST,
         cur_scan_idx = -1
         output_scan_index = -1
         config_regs = []
-        to_delete = []
 
     e_type = type(e)
-    print("INFO", cur_scan_idx, e_type)
+    # print("INFO", cur_scan_idx, e_type)
+
     if e.index in printed_ops:
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
@@ -119,17 +118,13 @@ def strength_reduction_rewrite(e: AST,
     if e_type == RecurrenceSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        print("e BEFORE", e)
         e_after = strength_reduction_rewrite(lake_state.program_map[e.producing_recurrence], False, lake_state)
-        print("e AFTER", e_after)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == CounterSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        print("e BEFORE", e)
         e_after = strength_reduction_rewrite(lake_state.program_map[e.producing_counter], False, lake_state)
-        print("e AFTER", e_after)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == MulOp:
@@ -145,18 +140,12 @@ def strength_reduction_rewrite(e: AST,
             og_counter_op = lake_state.program_map[lake_state.program_map[replace_counter].producing_counter]
             incr_amount_index = e.arg0_index if replace_arg == 1 else e.arg1_index
             incr_amount_op = lake_state.program_map[incr_amount_index]
-            new_index = lake_state.incr()
             lake_state.program_map[e.index] = \
                 counter_f(og_counter_op.prev_level_input, og_counter_op.at_max(), incr_amount_op)
+            prev_mul_index = e.index
             e = counter_f(og_counter_op.prev_level_input, og_counter_op.at_max(), incr_amount_op)
-            """ CounterOp(index=new_index,
-                        prev_level_input=og_counter_op.prev_level_input,
-                        max_val=og_counter_op.at_max(),
-                        is_max_wire=True,
-                        incr_amount=incr_amount_op,
-                        width=og_counter_op.width) """
-            # to_delete.append(e.index)
-            mul_list[e.index] = e.val()
+            # need to search for where this is used and replace it
+            mul_list[prev_mul_index] = e.index #e.val()
     elif e_type == CounterOp:
         if output_scan_index == -1:
             output_scan_index = e.index

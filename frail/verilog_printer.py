@@ -72,7 +72,6 @@ def print_verilog(e: AST,
         config_regs = []
 
     e_type = type(e)
-    print(e.index, e)
     if e.index in printed_ops:
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
@@ -261,12 +260,7 @@ def print_verilog(e: AST,
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
-        if isinstance(e.f, AST):
-            f_res = e.f
-        else:
-            f_res = e.f(cur_scan_lambda_var)
-        print("F RES", f_res)
-        #f_res = e.f(cur_scan_lambda_var)
+        f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
         read_from_output_port = False
