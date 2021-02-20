@@ -152,7 +152,7 @@ def strength_reduction_rewrite(e: AST,
             incr_amount_index = e.arg0_index if replace_arg == 1 else e.arg1_index
             incr_amount_op = lake_state.program_map[incr_amount_index]
             new_index = lake_state.incr()
-            lake_state.program_map[new_index] = \
+            lake_state.program_map[e.index] = \
                 counter_f(og_counter_op.prev_level_input, og_counter_op.at_max(), incr_amount_op)
             """ CounterOp(index=new_index,
                         prev_level_input=og_counter_op.prev_level_input,
@@ -160,7 +160,7 @@ def strength_reduction_rewrite(e: AST,
                         is_max_wire=True,
                         incr_amount=incr_amount_op,
                         width=og_counter_op.width) """
-            to_delete.append(e.index)
+            # to_delete.append(e.index)
             mul_list[e.index] = new_index
         else:
             arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
@@ -257,22 +257,19 @@ def strength_reduction_rewrite(e: AST,
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
         
-        res, state = strength_reduction_rewrite(f_res, False, lake_state)
-        lake_state = state
-        print("RES", res)
-        print(lake_state.program_map[cur_scan_idx])
-        lake_state.program_map[cur_scan_idx] = scan_const_f(lambda z: res)
-        print(lake_state.program_map[cur_scan_idx])
+        strength_reduction_rewrite(f_res, False, lake_state)
+        # lake_state.program_map[cur_scan_idx] = scan_const_f(lambda z: res)
 
     if root:
-        for d in to_delete:
+        return e, lake_state
+        """ for d in to_delete:
             del lake_state.program_map[d]
         # for k in lake_state.program_map.keys():
             # print(lake_state.program_map[k])
 
     if replace_counter is not None:
         return lake_state.program_map[new_index], lake_state
-    return e, lake_state
+    return e, lake_state """
 
 
 def print_arg(arg_index: int, lake_state: LakeDSLState):
