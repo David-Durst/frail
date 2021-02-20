@@ -106,7 +106,7 @@ def test_addr_design(
         # print(model_ag.get_address())
 
     with tempfile.TemporaryDirectory() as tempdir:
-        # tempdir = design
+        tempdir = design
         shutil.copy(f"{frail_dir}/verilog/{design}.v", tempdir)
         tester.compile_and_run(target="verilator",
                                directory=tempdir,
@@ -116,4 +116,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "counter_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(False, "rewrite")#, 0, 15, 20, 12, 15)

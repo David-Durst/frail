@@ -16,8 +16,8 @@ def create_affine_counter_design():
     return scan_const_f(lambda z: mul_f(level1.val(), x_stride)) #add_design
 
 counter_design = create_affine_counter_design()
-rewrite, rewrite_lake_state = strength_reduction_rewrite(counter_design)
-#rewrite = strength_reduction_rewrite(counter_design)
+# rewrite, rewrite_lake_state = strength_reduction_rewrite(counter_design)
+rewrite = strength_reduction_rewrite(counter_design)
 #print_verilog(e=rewrite, lake_state=rewrite_lake_state)
-#print_verilog(e=rewrite)
-print_verilog(counter_design)
+print_verilog(e=rewrite, top_name="rewrite")
+# print_verilog(counter_design)

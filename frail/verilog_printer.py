@@ -222,9 +222,11 @@ def print_verilog(e: AST,
         
         if isinstance(e.incr_amount, Int):
             incr_amount = f"{e.width}'d{e.incr_amount.val}"
+            print_verilog(e.incr_amount, False, lake_state)
         elif isinstance(e.incr_amount, Var):
             incr_amount = e.incr_amount.name
             io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
+            print_verilog(e.incr_amount, False, lake_state)
         else:
             assert False, "Not a valid type for value to increment counter by."
 
@@ -259,7 +261,12 @@ def print_verilog(e: AST,
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
-        f_res = e.f(cur_scan_lambda_var)
+        if isinstance(e.f, AST):
+            f_res = e.f
+        else:
+            f_res = e.f(cur_scan_lambda_var)
+        print("F RES", f_res)
+        #f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
         read_from_output_port = False
