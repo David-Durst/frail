@@ -161,10 +161,10 @@ def gt_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) ->
 
 @dataclass(frozen=True)
 class CounterOp(AST):
-    prev_level_input: int
+    prev_level_input: AST
     max_val: int
     is_max_wire: int
-    incr_amount: int
+    incr_amount: AST
     width: int
 
     def at_max(self, lake_state: LakeDSLState = default_lake_state):
