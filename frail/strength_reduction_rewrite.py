@@ -10,7 +10,9 @@ mul_list = {}
 
 
 def get_index(index: int, lake_state: LakeDSLState):
-    e, ls = strength_reduction_rewrite(lake_state.program_map[index], False, lake_state)
+    e, ls = strength_reduction_rewrite(lake_state.program_map[index],
+                                       False,
+                                       lake_state)
     if index in mul_list:
         counter_op = mul_list[index]
         return e.index
@@ -38,14 +40,17 @@ def strength_reduction_rewrite(e: AST,
     if e_type == RecurrenceSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        e_after, ls = strength_reduction_rewrite(lake_state.program_map[e.producing_recurrence], False, lake_state)
+        strength_reduction_rewrite(
+            lake_state.program_map[e.producing_recurrence], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
 
     elif e_type == CounterSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        e_after, ls = strength_reduction_rewrite(lake_state.program_map[e.producing_counter], False, lake_state)
+        strength_reduction_rewrite(lake_state.program_map[e.producing_counter],
+                                   False,
+                                   lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
 
@@ -66,25 +71,33 @@ def strength_reduction_rewrite(e: AST,
         replace_counter = None
         if isinstance(lake_state.program_map[e.arg0_index], CounterSeq):
             if isinstance(lake_state.program_map[e.arg1_index], Var) or \
-                isinstance(lake_state.program_map[e.arg1_index], Int):
+                    isinstance(lake_state.program_map[e.arg1_index], Int):
                 replace_counter = e.arg0_index
                 replace_arg = 0
         elif isinstance(lake_state.program_map[e.arg1_index], CounterSeq):
             if isinstance(lake_state.program_map[e.arg0_index], Var) or \
-                isinstance(lake_state.program_map[e.arg0_index], Int):
+                    isinstance(lake_state.program_map[e.arg0_index], Int):
                 replace_counter = e.arg1_index
                 replace_arg = 1
         # print("MUL 0", lake_state.program_map[e.arg0_index])
         # print("MUL 1", lake_state.program_map[e.arg1_index])
         if replace_counter is not None:
-            og_counter_op = lake_state.program_map[lake_state.program_map[replace_counter].producing_counter]
+            producing_counter = lake_state.program_map[replace_counter].producing_counter
+            og_counter_op = lake_state.program_map[producing_counter]
+
             incr_amount_index = e.arg0_index if replace_arg == 1 else e.arg1_index
             incr_amount_op = lake_state.program_map[incr_amount_index]
-            prev_level = None if og_counter_op.prev_level_input is None else lake_state.program_map[og_counter_op.prev_level_input]
-            lake_state.program_map[e.index] = \
-                counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
+
+            prev_level = None
+            if og_counter_op.prev_level_input is not None:
+                prev_level = lake_state.program_map[og_counter_op.prev_level_input]
+            lake_state.program_map[e.index] = counter_f(
+                prev_level, og_counter_op.at_max(), incr_amount_op).val()
             prev_mul_index = e.index
-            e = counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
+            e = counter_f(
+                prev_level,
+                og_counter_op.at_max(),
+                incr_amount_op).val()
             mul_list[prev_mul_index] = e.index
 
     elif e_type == CounterOp:
@@ -93,11 +106,16 @@ def strength_reduction_rewrite(e: AST,
         cur_scan_idx = e.index
 
         if e.prev_level_input is not None:
-            strength_reduction_rewrite(lake_state.program_map[e.prev_level_input], False, lake_state)
+            strength_reduction_rewrite(
+                lake_state.program_map[e.prev_level_input], False, lake_state)
         if e.is_max_wire:
-            strength_reduction_rewrite(lake_state.program_map[e.max_val], False, lake_state)
+            strength_reduction_rewrite(lake_state.program_map[e.max_val],
+                                       False,
+                                       lake_state)
         if isinstance(e.incr_amount, AST):
-            strength_reduction_rewrite(e.incr_amount, False, lake_state)
+            strength_reduction_rewrite(e.incr_amount,
+                                       False,
+                                       lake_state)
 
     elif e_type == ScanConstOp:
         if output_scan_index == -1:
@@ -112,4 +130,3 @@ def strength_reduction_rewrite(e: AST,
             e = scan_const_f(lambda z: e_ret)
 
     return e, lake_state
-        
