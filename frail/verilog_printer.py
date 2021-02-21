@@ -87,7 +87,7 @@ def print_verilog(e: AST,
             width = get_width(e.index, lake_state)
             add_port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
 
-        if add_port is not None and add_port not in io_ports[cur_scan_idx]:
+        if (add_port is not None) and (add_port not in io_ports[cur_scan_idx]):
             io_ports[cur_scan_idx].append(add_port)
             
         return
@@ -196,8 +196,10 @@ def print_verilog(e: AST,
 
         io_ports[cur_scan_idx] = []
         # add output port
-        io_ports[cur_scan_idx].append(ModulePort(counter_val_output + str(e.index), e.width, True, False, False, False))
-        io_ports[cur_scan_idx].append(ModulePort(counter_max_output + str(e.index), e.width, True, False, False, True))
+        counter_val_port = ModulePort(counter_val_output + str(e.index), e.width, True, False, False, False)
+        io_ports[cur_scan_idx].append(counter_val_port)
+        counter_max_port = ModulePort(counter_max_output + str(e.index), e.width, True, False, False, True)
+        io_ports[cur_scan_idx].append(counter_max_port)
         io_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
@@ -232,8 +234,10 @@ def print_verilog(e: AST,
             print_verilog(e.incr_amount, False, lake_state)
         elif isinstance(e.incr_amount, Var):
             incr_amount = e.incr_amount.name
-            io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
+            add_port = ModulePort(incr_amount, e.incr_amount.width, False, True, False, False)
             print_verilog(e.incr_amount, False, lake_state)
+            if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
+                io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
         else:
             assert False, "Not a valid type for value to increment counter by."
 
@@ -380,7 +384,9 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
         return get_width(ast_obj.producing_recurrence, lake_state)
     elif isinstance(ast_obj, CounterSeq):
         return get_width(ast_obj.producing_counter, lake_state)
-    elif isinstance(ast_obj, EqOp):
+    elif isinstance(ast_obj, EqOp) or \
+            isinstance(ast_obj, LTOp) or \
+            isinstance(ast_obj, GTOp):
         return ast_obj
     else:
         raise ValueError("unrecognized object: " + str(ast_obj))
@@ -407,6 +413,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                        k: int,
                        add_step: bool):
 
+    print([x.name for x in io_ports[k]])
     module_inst_str = ""
     needs_clock = False
     

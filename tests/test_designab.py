@@ -103,7 +103,7 @@ def test_addr_design(
         tester.eval()
         model_ag.step()
         tester.circuit.addr_out.expect(model_ag.get_address())
-        print(model_ag.get_address())
+        # print(model_ag.get_address())
 
     with tempfile.TemporaryDirectory() as tempdir:
         tempdir = design
