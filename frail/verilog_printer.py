@@ -72,7 +72,7 @@ def print_verilog(e: AST,
         config_regs = []
 
     e_type = type(e)
-    print("VERILOG INFO ", e)
+
     if e.index in printed_ops:
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
@@ -145,13 +145,8 @@ def print_verilog(e: AST,
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == AddOp:
-        print(e)
-        print("VERILOG ADD ", e.arg0_index, e.arg1_index)
-        print(lake_state.program_map[e.arg0_index])
-        print(lake_state.program_map[e.arg1_index])
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
-        
         print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
     elif e_type == SubOp:
@@ -263,7 +258,6 @@ def print_verilog(e: AST,
         # end always_comb block
         comb_strs[cur_scan_idx] += tab_str + "end \n"
     elif e_type == ScanConstOp:
-        print("HERE ScanConstOp")
         if output_scan_index == -1:
             output_scan_index = e.index
         cur_scan_idx = e.index

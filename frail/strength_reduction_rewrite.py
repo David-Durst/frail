@@ -10,11 +10,7 @@ mul_list = {}
 
 
 def get_index(index: int, lake_state: LakeDSLState):
-    print("AST ", lake_state.program_map[index])
     e, ls = strength_reduction_rewrite(lake_state.program_map[index], False, lake_state)
-    print("AST AFTER ", e)
-    # print(mul_list)
-    # print(index)
     if index in mul_list:
         counter_op = mul_list[index]
         return e.index
@@ -34,7 +30,6 @@ def strength_reduction_rewrite(e: AST,
         mul_list = {}
 
     e_type = type(e)
-    print("INFO ", e)
     if e.index in printed_ops:
         return
 
@@ -55,11 +50,9 @@ def strength_reduction_rewrite(e: AST,
         cur_scan_lambda_var = old_scan_lambda_var
 
     elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp):
-        print("OLD ADD ", e)
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
         lake_state.program_map[e.index] = e
-        print("NEW ADD ", e)
     elif e_type == SelectBitsOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
     elif e_type == IfOp:
@@ -85,9 +78,7 @@ def strength_reduction_rewrite(e: AST,
                 counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
             prev_mul_index = e.index
             e = counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
-            # need to search for where this is used and replace it
-            mul_list[prev_mul_index] = e.index #e.val()
-            # print(prev_mul_index, mul_list)
+            mul_list[prev_mul_index] = e.index
     elif e_type == CounterOp:
         if output_scan_index == -1:
             output_scan_index = e.index
