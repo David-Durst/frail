@@ -72,6 +72,7 @@ def print_verilog(e: AST,
         config_regs = []
 
     e_type = type(e)
+    print("VERILOG INFO ", e)
     if e.index in printed_ops:
         # still need to add op to io_ports for this next module
         # for signals that are inputs to multiple submodules
@@ -144,8 +145,13 @@ def print_verilog(e: AST,
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
     elif e_type == AddOp:
+        print(e)
+        print("VERILOG ADD ", e.arg0_index, e.arg1_index)
+        print(lake_state.program_map[e.arg0_index])
+        print(lake_state.program_map[e.arg1_index])
         arg0_str = get_var_val(print_arg(e.arg0_index, lake_state))
         arg1_str = get_var_val(print_arg(e.arg1_index, lake_state))
+        
         print_define_and_assign(e, lake_state)
         comb_strs[cur_scan_idx] += f"{arg0_str} + {arg1_str}; \n"
     elif e_type == SubOp:
@@ -213,8 +219,15 @@ def print_verilog(e: AST,
         else:
             max_signal = f"{e.width}'d{e.max_val}"
 
+        
         # logic of checking max output, then incrementing if prev_level_input says so and not at max
-        comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
+        if isinstance(lake_state.program_map[e.max_val], CounterSeq):
+            comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                f"{counter_max_output}{e.index} = {counter_max_output}{lake_state.program_map[e.max_val].producing_counter};\n"
+        else:
+            comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
+
         # what are step?
         step_begin = step_if_begin if add_step else ""
         step_end = step_if_end if add_step else ""
@@ -230,15 +243,14 @@ def print_verilog(e: AST,
             assert False, "Not a valid type for value to increment counter by."
 
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
-                                 step_begin + \
-                                 get_tab_strs(3) + \
+                                step_begin + \
+                                get_tab_strs(3) + \
                                     f"{counter_val_output}{e.index} <= {enable_signal} ? " +\
                                     f"({counter_max_output}{e.index} " + \
                                     f"? {e.width}'b0 : {counter_val_output}{e.index} + {incr_amount})" + \
                                     f": {counter_val_output}{e.index}; \n" + \
-                                 step_end + \
-                                 tab_str + "end\n"
-
+                                step_end + \
+                                tab_str + "end\n"
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
         # manually added all output fports in this block
         for port in io_ports[cur_scan_idx]:
@@ -251,6 +263,7 @@ def print_verilog(e: AST,
         # end always_comb block
         comb_strs[cur_scan_idx] += tab_str + "end \n"
     elif e_type == ScanConstOp:
+        print("HERE ScanConstOp")
         if output_scan_index == -1:
             output_scan_index = e.index
         cur_scan_idx = e.index
@@ -260,6 +273,7 @@ def print_verilog(e: AST,
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
+
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block

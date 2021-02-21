@@ -20,8 +20,8 @@ def test_addr_design(
         starting_addr=0,
         strides_0=15,
         strides_1=13,
-        ranges_0=25,
-        ranges_1=13):
+        ranges_0=5,
+        ranges_1=6):
 
     if test_rand:
         max_value = 2**5
@@ -103,7 +103,7 @@ def test_addr_design(
         tester.eval()
         model_ag.step()
         tester.circuit.addr_out.expect(model_ag.get_address())
-        # print(model_ag.get_address())
+        print(model_ag.get_address())
 
     with tempfile.TemporaryDirectory() as tempdir:
         tempdir = design

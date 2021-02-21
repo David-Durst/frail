@@ -2,7 +2,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, Union
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class AST():
     index: int
 
@@ -24,7 +24,7 @@ class LakeDSLState():
 default_lake_state = LakeDSLState()
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class Var(AST):
     name: str
     width: int
@@ -34,7 +34,7 @@ def var_f(name: str, width: int = 16, lake_state: LakeDSLState = default_lake_st
     return Var(lake_state.incr(), name, width)
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class Int(AST):
     val: int
     width: int
@@ -44,7 +44,7 @@ def int_f(val: int, bit_width: int = 16, lake_state: LakeDSLState = default_lake
     return Int(lake_state.incr(), val, bit_width)
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class Bool(AST):
     val: bool
     producing_seq: int = None
@@ -55,7 +55,7 @@ def bool_f(val: bool, lake_state: LakeDSLState = default_lake_state) -> Bool:
     return Int(lake_state.incr(), val)
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class RecurrenceSeq(AST):
     producing_recurrence: int
 
@@ -64,7 +64,7 @@ def recurrence_seq_f(producing_recurrence: int, lake_state: LakeDSLState = defau
     return RecurrenceSeq(lake_state.incr(), producing_recurrence)
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class CounterSeq(AST):
     producing_counter: int
     # true if is_max signal, false if just value signal
@@ -75,13 +75,13 @@ def counter_seq_f(producing_counter: int, is_max_signal: bool, lake_state: LakeD
     return CounterSeq(lake_state.incr(), producing_counter, is_max_signal)
 
 
-@dataclass(eq=True, frozen=True)
+@dataclass(eq=True, frozen=False)
 class BinOp(AST):
     arg0_index: int
     arg1_index: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class AddOp(BinOp):
     pass
 
@@ -90,7 +90,7 @@ def add_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -
     return AddOp(lake_state.incr(), arg0.index, arg1.index)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class SubOp(BinOp):
     pass
 
@@ -99,7 +99,7 @@ def sub_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -
     return SubOp(lake_state.incr(), arg0.index, arg1.index)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class MulOp(BinOp):
     pass
 
@@ -108,7 +108,7 @@ def mul_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -
     return MulOp(lake_state.incr(), arg0.index, arg1.index)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class ModOp(BinOp):
     pass
 
@@ -117,7 +117,7 @@ def mod_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -
     return ModOp(lake_state.incr(), arg0.index, arg1.index)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class SelectBitsOp(AST):
     arg0_index: int
     bits: int
@@ -128,7 +128,7 @@ def select_bits_f(arg0: AST, arg1: int, lake_state: LakeDSLState = default_lake_
     return SelectBitsOp(lake_state.incr(), arg0.index, arg1)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class IfOp(BinOp):
     b_index: int
 
@@ -137,7 +137,7 @@ def if_f(b: Bool, arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_
     return IfOp(lake_state.incr(), arg0.index, arg1.index, b.index)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class EqOp(BinOp):
     width: int = 1
 
@@ -145,21 +145,21 @@ class EqOp(BinOp):
 def eq_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> EqOp:
     return EqOp(lake_state.incr(), arg0.index, arg1.index)
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class LTOp(BinOp):
     width: int = 1
 
 def lt_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> LTOp:
     return LTOp(lake_state.incr(), arg0.index, arg1.index)
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class GTOp(BinOp):
     width: int = 1
     
 def gt_f(arg0: AST, arg1: AST, lake_state: LakeDSLState = default_lake_state) -> GTOp:
     return GTOp(lake_state.incr(), arg0.index, arg1.index)
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class CounterOp(AST):
     prev_level_input: AST
     max_val: int
@@ -180,7 +180,7 @@ def counter_f(prev_level_input: AST, max_val: Union[AST, int], incr_amount: AST,
     prev_level_input_storage = prev_level_input.index if prev_level_input is not None else None
     return CounterOp(lake_state.incr(), prev_level_input_storage, max_val_storage, isinstance(max_val, AST), incr_amount, width)
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class ScanConstOp(AST):
     f: Callable[[Var], AST]
     width: int
@@ -194,7 +194,7 @@ def scan_const_f(f: Callable[[Var], AST], width: int = 16, lake_state: LakeDSLSt
 
 
 """
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class Affine_Seq():
     a: AST
     y: AST
@@ -202,26 +202,26 @@ class Affine_Seq():
     incr: int
     bit_width: int
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class Const(AST):
     val: int
     width: int
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class MulOp(AST):
     left: AST
     right: AST
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class AddOp(AST):
     left: AST
     right: AST
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class Counter(AST):
     a: int
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class Numeric_Expr():
     var: str
     const: int
@@ -232,7 +232,7 @@ class Numeric_Expr():
             return "{}+"
             result 
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class Affine_Seq():
     a: int
     y: int
@@ -244,7 +244,7 @@ class Affine_Seq():
         return "{}*x + y for 0 to {} by {} width {}".format(str(self.a), str(self.y),
                                                             str(self.num*self.incr), self.incr, self.bit_width)
 
-@dataclass(frozen=True)
+@dataclass(frozen=False)
 class Nested_Affine_Seq():
     a: [int]
     y: [int]

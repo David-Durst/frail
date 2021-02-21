@@ -8,6 +8,19 @@ output_scan_index: int = -1
 printed_ops: Set[int] = set()
 mul_list = {}
 
+
+def get_index(index: int, lake_state: LakeDSLState):
+    print("AST ", lake_state.program_map[index])
+    e, ls = strength_reduction_rewrite(lake_state.program_map[index], False, lake_state)
+    print("AST AFTER ", e)
+    # print(mul_list)
+    # print(index)
+    if index in mul_list:
+        counter_op = mul_list[index]
+        return e.index
+    return index
+
+
 def strength_reduction_rewrite(e: AST,
                                root: bool = True,
                                lake_state: LakeDSLState = default_lake_state):
@@ -21,7 +34,7 @@ def strength_reduction_rewrite(e: AST,
         mul_list = {}
 
     e_type = type(e)
-
+    print("INFO ", e)
     if e.index in printed_ops:
         return
 
@@ -30,15 +43,29 @@ def strength_reduction_rewrite(e: AST,
     if e_type == RecurrenceSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        e_after = strength_reduction_rewrite(lake_state.program_map[e.producing_recurrence], False, lake_state)
+        e_after, ls = strength_reduction_rewrite(lake_state.program_map[e.producing_recurrence], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
+
     elif e_type == CounterSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        e_after = strength_reduction_rewrite(lake_state.program_map[e.producing_counter], False, lake_state)
+        e_after, ls = strength_reduction_rewrite(lake_state.program_map[e.producing_counter], False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
+
+    elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp):
+        print("OLD ADD ", e)
+        e.arg0_index = get_index(e.arg0_index, lake_state)
+        e.arg1_index = get_index(e.arg1_index, lake_state)
+        lake_state.program_map[e.index] = e
+        print("NEW ADD ", e)
+    elif e_type == SelectBitsOp:
+        e.arg0_index = get_index(e.arg0_index, lake_state)
+    elif e_type == IfOp:
+        e.arg0_index = get_index(e.arg0_index, lake_state)
+        e.arg1_index = get_index(e.arg1_index, lake_state)
+        e.b_index = get_index(e.b_index, lake_state)
     elif e_type == MulOp:
         replace_counter = None
         if isinstance(lake_state.program_map[e.arg0_index], CounterSeq):
@@ -47,18 +74,20 @@ def strength_reduction_rewrite(e: AST,
         elif isinstance(lake_state.program_map[e.arg1_index], CounterSeq):
             replace_counter = e.arg1_index
             replace_arg = 1
-        print(lake_state.program_map[e.arg0_index])
-        print(lake_state.program_map[e.arg1_index])
+        # print("MUL 0", lake_state.program_map[e.arg0_index])
+        # print("MUL 1", lake_state.program_map[e.arg1_index])
         if replace_counter is not None:
             og_counter_op = lake_state.program_map[lake_state.program_map[replace_counter].producing_counter]
             incr_amount_index = e.arg0_index if replace_arg == 1 else e.arg1_index
             incr_amount_op = lake_state.program_map[incr_amount_index]
+            prev_level = None if og_counter_op.prev_level_input is None else lake_state.program_map[og_counter_op.prev_level_input]
             lake_state.program_map[e.index] = \
-                counter_f(lake_state.program_map[og_counter_op.prev_level_input], og_counter_op.at_max(), incr_amount_op)
+                counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
             prev_mul_index = e.index
-            e = counter_f(lake_state.program_map[og_counter_op.prev_level_input], og_counter_op.at_max(), incr_amount_op)
+            e = counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
             # need to search for where this is used and replace it
             mul_list[prev_mul_index] = e.index #e.val()
+            # print(prev_mul_index, mul_list)
     elif e_type == CounterOp:
         if output_scan_index == -1:
             output_scan_index = e.index
@@ -77,9 +106,11 @@ def strength_reduction_rewrite(e: AST,
         cur_scan_idx = e.index
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
-        e_ret = strength_reduction_rewrite(f_res, False, lake_state)
+        e_ret, ls = strength_reduction_rewrite(f_res, False, lake_state)
         if isinstance(e_ret, CounterOp):
             e = e_ret
+        else:
+            e = scan_const_f(lambda z: e_ret)
 
-    return e
+    return e, lake_state
         
