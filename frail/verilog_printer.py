@@ -413,7 +413,6 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
                        k: int,
                        add_step: bool):
 
-    print([x.name for x in io_ports[k]])
     module_inst_str = ""
     needs_clock = False
     
