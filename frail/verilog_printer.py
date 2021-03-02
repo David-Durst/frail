@@ -238,6 +238,9 @@ def print_verilog(e: AST,
             print_verilog(e.incr_amount, False, lake_state)
             if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
                 io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
+        elif isinstance(e.incr_amount, IfOp):
+            incr_amount = f"x{e.index}"
+            print_verilog(e.incr_amount, False, lake_state)
         else:
             assert False, "Not a valid type for value to increment counter by."
 
