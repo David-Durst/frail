@@ -82,7 +82,7 @@ module scan78 (
 
     always_ff @(posedge clk) begin
         if (step) begin
-            counter_val_78 <= 1'b1 ? (counter_at_max_78 ? 16'b0 : counter_val_78 + x78): counter_val_78; 
+            counter_val_78 <= 1'b1 ? (counter_at_max_78 ? 16'b0 : counter_val_78 + x77): counter_val_78; 
         end 
     end
 endmodule

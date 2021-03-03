@@ -216,7 +216,8 @@ def print_verilog(e: AST,
         else:
             max_signal = f"{e.width}'d{e.max_val}"
 
-        
+        if e.index == 78:
+            print("VERILOG", e)
         # logic of checking max output, then incrementing if prev_level_input says so and not at max
         if isinstance(lake_state.program_map[e.max_val], CounterSeq):
             comb_strs[cur_scan_idx] += get_tab_strs(3) + \
@@ -239,7 +240,7 @@ def print_verilog(e: AST,
             if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
                 io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
         elif isinstance(e.incr_amount, IfOp):
-            incr_amount = f"x{e.index}"
+            incr_amount = f"x{e.incr_amount.index}"
             print_verilog(e.incr_amount, False, lake_state)
         else:
             assert False, "Not a valid type for value to increment counter by."
