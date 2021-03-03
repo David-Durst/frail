@@ -48,7 +48,7 @@ def get_merged_counter(lake_state):
         mvc = lake_state.program_map[merge[0]]
         pvc = lake_state.program_map[merge[1]]
         merged_counter = counter_f(mvc.prev_level_input, pvc.max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(f"config_{merge[0]}_{merge[1]}_op"), mvc.incr_amount))
-        print("MERGE", merged_counter)
+        print("MERGE", mvc, pvc,  merged_counter)
         return merged_counter
     return None
 
@@ -56,7 +56,10 @@ def get_index(index: int, lake_state: LakeDSLState):
     sharing_nested_counters_rewrite(lake_state.program_map[index],
                                     False,
                                     lake_state)
+    print("REPLACE", replace)
+    index_ast = lake_state.program_map[index]
     if index in replace:
+        print("INDEX AST", index_ast)
         return replace[index].index
     return index
 
@@ -155,20 +158,25 @@ def sharing_nested_counters_rewrite(e: AST,
         cur_scan_idx = e.index
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
-        sharing_nested_counters_rewrite(f_res, False, lake_state)
-
+        e_ret = sharing_nested_counters_rewrite(f_res, False, lake_state)
+        print("TYPE E RET", lake_state.program_map[lake_state.program_map[36].max_val])
+        e = scan_const_f(lambda z: e_ret)
     elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp, MulOp):
         if e_type == AddOp:
             print("INDICES", e.arg0_index, e.arg1_index)
             print(lake_state.program_map[e.arg0_index], lake_state.program_map[e.arg1_index])
+        print("START ADD", prev_vals, max_vals)
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
         lake_state.program_map[e.index] = e
         merged = get_merged_counter(lake_state)
+        print("MERGED VAL", type(merged))
+        #merged = merged.val()
         if merged is not None:
+            merged = merged.val()
             lake_state.program_map[e.index] = merged
             replace[e.index] = merged
-        print("DONE ADD")
+        print("DONE ADD", prev_vals, max_vals)
     elif e_type == SelectBitsOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
         lake_state.program_map[e.index] = e
