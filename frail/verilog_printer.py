@@ -218,6 +218,8 @@ def print_verilog(e: AST,
 
         if e.index == 78:
             print("VERILOG", e)
+            print(lake_state.program_map[71])
+            print(lake_state.program_map[53])
         # logic of checking max output, then incrementing if prev_level_input says so and not at max
         if isinstance(lake_state.program_map[e.max_val], CounterSeq):
             comb_strs[cur_scan_idx] += get_tab_strs(3) + \

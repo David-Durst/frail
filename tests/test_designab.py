@@ -63,7 +63,7 @@ def test_addr_design(
     # no need to rst_n or clk_en yet
 
     # config regs
-    if design == "design_b" or design == "op_design":
+    if design == "design_b" or design == "op_design" or design == "nested":
         tranges, tstrides = transform_strides_and_ranges(
             [ranges_0, ranges_1],
             [strides_0, strides_1],

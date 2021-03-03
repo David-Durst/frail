@@ -47,7 +47,8 @@ def get_merged_counter(lake_state):
     if merge is not None:
         mvc = lake_state.program_map[merge[0]]
         pvc = lake_state.program_map[merge[1]]
-        merged_counter = counter_f(mvc.prev_level_input, pvc.max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(f"config_{merge[0]}_{merge[1]}_op"), mvc.incr_amount))
+        max_val = lake_state.program_map[lake_state.program_map[pvc.max_val].producing_counter].at_max()
+        merged_counter = counter_f(mvc.prev_level_input, max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(f"config_{merge[0]}_{merge[1]}_op"), mvc.incr_amount))
         print("MERGE", mvc, pvc,  merged_counter)
         return merged_counter
     return None
@@ -159,7 +160,7 @@ def sharing_nested_counters_rewrite(e: AST,
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
         e_ret = sharing_nested_counters_rewrite(f_res, False, lake_state)
-        print("TYPE E RET", lake_state.program_map[lake_state.program_map[36].max_val])
+        #print("TYPE E RET", lake_state.program_map[lake_state.program_map[36].max_val])
         e = scan_const_f(lambda z: e_ret)
     elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp, MulOp):
         if e_type == AddOp:
