@@ -10,19 +10,22 @@ printed_ops: Set[int] = set()
 have_merged_counters: bool = False
 prev_vals = {}
 max_vals = {}
+replace = {}
 
 def nested_counters_rewrite(e: AST,
                             root: bool = True,
                             lake_state: LakeDSLState = default_lake_state):
     need_merged_counters = True
     while (need_merged_counters):
-        sharing_nested_counters_rewrite(e, root, lake_state)
-        print(prev_vals)
-        print(max_vals)
-        merged_counter = get_merged_counter(lake_state)
-        print_verilog(merged_counter)
+        e = sharing_nested_counters_rewrite(e, root, lake_state)
+        
+        # merged_counter = get_merged_counter(lake_state)
+        # print_verilog(merged_counter, top_name="nested")
         break
-    
+    print_verilog(e=e,
+                  lake_state=lake_state, 
+                  top_name="nested")
+    return e
     """ while need_merged_counters:
       e, lake_state, need_merged_counters = \
         sharing_nested_counters_rewrite(e, root, lake_state) """
@@ -32,26 +35,37 @@ def nested_counters_rewrite(e: AST,
                   top_name="nested_counters_rewrite") """
 
 def get_merged_counter(lake_state):
+    print(prev_vals)
+    print(max_vals)
+    merge = None
     for m in max_vals:
-        if m in prev_vals:
+        if m in prev_vals and len(prev_vals[m]) > 0 and len(max_vals[m]) > 0:
             merge = [max_vals[m][0], prev_vals[m][0]]
+            max_vals[m].remove(max_vals[m][0])
+            prev_vals[m].remove(prev_vals[m][0])
             break
-    mvc = lake_state.program_map[merge[0]]
-    pvc = lake_state.program_map[merge[1]]
-    merged_counter = counter_f(mvc.prev_level_input, pvc.max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(f"{merge[0]}_{merge[1]}_op"), mvc.incr_amount))
-    print("MERGE", merged_counter)
-    return merged_counter
+    if merge is not None:
+        mvc = lake_state.program_map[merge[0]]
+        pvc = lake_state.program_map[merge[1]]
+        merged_counter = counter_f(mvc.prev_level_input, pvc.max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(f"config_{merge[0]}_{merge[1]}_op"), mvc.incr_amount))
+        print("MERGE", merged_counter)
+        return merged_counter
+    return None
 
-def get_arg(index: int, lake_state: LakeDSLState):
+def get_index(index: int, lake_state: LakeDSLState):
     sharing_nested_counters_rewrite(lake_state.program_map[index],
                                     False,
                                     lake_state)
+    if index in replace:
+        return replace[index].index
+    return index
 
 def sharing_nested_counters_rewrite(e: AST,
                                     root: bool = True,
                                     lake_state: LakeDSLState = default_lake_state):
     global cur_scan_idx, output_scan_index, cur_scan_lambda_var
     global printed_ops, have_merged_counters, prev_vals, max_vals
+    global replace
 
     """ print(prev_vals)
     print(max_vals)
@@ -63,6 +77,7 @@ def sharing_nested_counters_rewrite(e: AST,
         have_merged_counters = False
         prev_vals = {}
         max_vals = {}
+        replace = {}
 
     e_type = type(e)
     if e.index in printed_ops:
@@ -143,13 +158,24 @@ def sharing_nested_counters_rewrite(e: AST,
         sharing_nested_counters_rewrite(f_res, False, lake_state)
 
     elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp, MulOp):
-        get_arg(e.arg0_index, lake_state)
-        get_arg(e.arg1_index, lake_state)
+        if e_type == AddOp:
+            print("INDICES", e.arg0_index, e.arg1_index)
+            print(lake_state.program_map[e.arg0_index], lake_state.program_map[e.arg1_index])
+        e.arg0_index = get_index(e.arg0_index, lake_state)
+        e.arg1_index = get_index(e.arg1_index, lake_state)
+        lake_state.program_map[e.index] = e
+        merged = get_merged_counter(lake_state)
+        if merged is not None:
+            lake_state.program_map[e.index] = merged
+            replace[e.index] = merged
+        print("DONE ADD")
     elif e_type == SelectBitsOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
+        lake_state.program_map[e.index] = e
     elif e_type == IfOp:
-        get_arg(e.arg0_index, lake_state)
-        get_arg(e.arg1_index, lake_state)
-        get_arg(e.b_index, lake_state)
+        e.arg0_index = get_index(e.arg0_index, lake_state)
+        e.arg1_index = get_index(e.arg1_index, lake_state)
+        e.b_index = get_index(e.b_index, lake_state)
+        lake_state.program_map[e.index] = e
 
-    return# False
+    return e

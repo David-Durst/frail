@@ -31,4 +31,4 @@ counter_design = create_affine_counter_design()
 # with strength reduction rewrite rule
 rewrite, ls = strength_reduction_rewrite(counter_design)
 # print_verilog(e=rewrite, lake_state=ls, top_name="rewrite")
-nested_counters_rewrite(rewrite, True, ls)
+nested = nested_counters_rewrite(rewrite, True, ls)
