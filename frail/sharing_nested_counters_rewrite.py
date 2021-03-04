@@ -43,6 +43,7 @@ def get_merged_counter(lake_state):
             max_vals[m].remove(max_vals[m][0])
             prev_vals[m].remove(prev_vals[m][0])
             break
+          
     if merge is not None:
         mvc = lake_state.program_map[merge[0]]
         pvc = lake_state.program_map[merge[1]]
@@ -50,7 +51,11 @@ def get_merged_counter(lake_state):
         if type(pvc.incr_amount) is Var:
           new_config_name = f"{pvc.incr_amount.name}_op"
         max_val = lake_state.program_map[lake_state.program_map[pvc.max_val].producing_counter].at_max()
-        merged_counter = counter_f(mvc.prev_level_input, max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(new_config_name), mvc.incr_amount))
+        merged_counter = counter_f(mvc.prev_level_input,
+                                   max_val, 
+                                   if_f(lake_state.program_map[pvc.prev_level_input], 
+                                        var_f(new_config_name), 
+                                        mvc.incr_amount))
         return merged_counter
     return None
 
@@ -107,9 +112,7 @@ def sharing_nested_counters_rewrite(e: AST,
         counter_op = lake_state.program_map[e.producing_counter]
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
-        sharing_nested_counters_rewrite(lake_state.program_map[e.producing_counter],
-                                   False,
-                                   lake_state)
+        sharing_nested_counters_rewrite(counter_op, False, lake_state)
         cur_scan_idx = old_scan_idx
         cur_scan_lambda_var = old_scan_lambda_var
 
@@ -125,9 +128,7 @@ def sharing_nested_counters_rewrite(e: AST,
             add_potential_counter(e, lake_state, e.max_val, False)
 
         if isinstance(e.incr_amount, AST):
-            sharing_nested_counters_rewrite(e.incr_amount,
-                                       False,
-                                       lake_state)
+            sharing_nested_counters_rewrite(e.incr_amount, False, lake_state)
 
     elif e_type == ScanConstOp:
         if output_scan_index == -1:
