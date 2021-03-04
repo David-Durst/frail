@@ -58,9 +58,11 @@ def strength_reduction_rewrite(e: AST,
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
         lake_state.program_map[e.index] = e
+
     elif e_type == SelectBitsOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
         lake_state.program_map[e.index] = e
+
     elif e_type == IfOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
@@ -79,8 +81,7 @@ def strength_reduction_rewrite(e: AST,
                     isinstance(lake_state.program_map[e.arg0_index], Int):
                 replace_counter = e.arg1_index
                 replace_arg = 1
-        # print("MUL 0", lake_state.program_map[e.arg0_index])
-        # print("MUL 1", lake_state.program_map[e.arg1_index])
+
         if replace_counter is not None:
             producing_counter = lake_state.program_map[replace_counter].producing_counter
             og_counter_op = lake_state.program_map[producing_counter]
@@ -94,10 +95,7 @@ def strength_reduction_rewrite(e: AST,
             lake_state.program_map[e.index] = counter_f(
                 prev_level, og_counter_op.at_max(), incr_amount_op).val()
             prev_mul_index = e.index
-            e = counter_f(
-                prev_level,
-                og_counter_op.at_max(),
-                incr_amount_op).val()
+            e = counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
             mul_list[prev_mul_index] = e.index
 
     elif e_type == CounterOp:
