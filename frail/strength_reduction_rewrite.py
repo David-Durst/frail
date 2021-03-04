@@ -106,14 +106,13 @@ def strength_reduction_rewrite(e: AST,
         if e.prev_level_input is not None:
             strength_reduction_rewrite(
                 lake_state.program_map[e.prev_level_input], False, lake_state)
+
         if e.is_max_wire:
-            strength_reduction_rewrite(lake_state.program_map[e.max_val],
-                                       False,
-                                       lake_state)
+            strength_reduction_rewrite(
+                lake_state.program_map[e.max_val], False, lake_state)
+
         if isinstance(e.incr_amount, AST):
-            strength_reduction_rewrite(e.incr_amount,
-                                       False,
-                                       lake_state)
+            strength_reduction_rewrite(e.incr_amount, False, lake_state)
 
     elif e_type == ScanConstOp:
         if output_scan_index == -1:
