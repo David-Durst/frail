@@ -216,22 +216,7 @@ def print_verilog(e: AST,
         else:
             max_signal = f"{e.width}'d{e.max_val}"
 
-        if e.index == 78:
-            print("VERILOG", e)
-            print(lake_state.program_map[71])
-            print(lake_state.program_map[53])
-        # logic of checking max output, then incrementing if prev_level_input says so and not at max
-        if isinstance(lake_state.program_map[e.max_val], CounterSeq):
-            comb_strs[cur_scan_idx] += get_tab_strs(3) + \
-                f"{counter_max_output}{e.index} = {counter_max_output}{lake_state.program_map[e.max_val].producing_counter};\n"
-        else:
-            comb_strs[cur_scan_idx] += get_tab_strs(3) + \
-                f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
-
-        # what are step?
-        step_begin = step_if_begin if add_step else ""
-        step_end = step_if_end if add_step else ""
-        
+        first_merge_max = None
         if isinstance(e.incr_amount, Int):
             incr_amount = f"{e.width}'d{e.incr_amount.val}"
             print_verilog(e.incr_amount, False, lake_state)
@@ -243,13 +228,31 @@ def print_verilog(e: AST,
                 io_ports[cur_scan_idx].append(add_port)
         elif isinstance(e.incr_amount, IfOp):
             incr_amount = f"x{e.incr_amount.index}"
-            add_port = ModulePort(get_var_val(print_arg(e.incr_amount.b_index, lake_state)), 16, False, True, False, True)
+            first_merge_max = get_var_val(print_arg(e.incr_amount.b_index, lake_state))
+            add_port = ModulePort(first_merge_max, 16, False, True, False, True)
             print("ADD PORT", add_port)
             print_verilog(e.incr_amount, False, lake_state)
             if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
                 io_ports[cur_scan_idx].append(add_port)
         else:
             assert False, "Not a valid type for value to increment counter by."
+
+        # logic of checking max output, then incrementing if prev_level_input says so and not at max
+        if isinstance(lake_state.program_map[e.max_val], CounterSeq):
+            if first_merge_max is None:
+              comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                  f"{counter_max_output}{e.index} = {counter_max_output}{lake_state.program_map[e.max_val].producing_counter};\n"
+            else:
+              comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                  f"{counter_max_output}{e.index} = {counter_max_output}{lake_state.program_map[e.max_val].producing_counter} & {first_merge_max};\n"
+        else:
+            comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
+
+        step_begin = step_if_begin if add_step else ""
+        step_end = step_if_end if add_step else ""
+        
+        
 
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
                                 step_begin + \

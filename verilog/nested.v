@@ -110,8 +110,8 @@ module scan81 (
     logic [15:0] x80; 
 
     always_comb begin 
-            counter_at_max_81 = counter_at_max_55;
             x80 = counter_at_max_52 ? config_68_74_op : x_stride; 
+            counter_at_max_81 = counter_at_max_55 & counter_at_max_52;
     end 
 
     always_ff @(posedge clk) begin
