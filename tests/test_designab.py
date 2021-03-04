@@ -72,7 +72,9 @@ def test_addr_design(
         tester.circuit.x_stride = tstrides[0]
         tester.circuit.y_max = ranges_1 #tranges[1]
         tester.circuit.y_stride = tstrides[1]
-        tester.circuit.config_68_74_op = tstrides[1]
+        # tester.circuit.config_68_74_op = tstrides[1]
+        # tester.circuit.config_125_131_op = tstrides[1]
+        tester.circuit.y_stride_op = tstrides[1]
         tester.circuit.offset = starting_addr
         print("transformed:", tranges, tstrides)
     elif design == "piecewise_addr_design":

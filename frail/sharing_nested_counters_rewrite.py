@@ -24,6 +24,17 @@ def nested_counters_rewrite(e: AST,
                   top_name="nested")
     return e
 
+
+def get_index(index: int, lake_state: LakeDSLState):
+    sharing_nested_counters_rewrite(lake_state.program_map[index],
+                                    False,
+                                    lake_state)
+    index_ast = lake_state.program_map[index]
+    if index in replace:
+        return replace[index].index
+    return index
+
+
 def get_merged_counter(lake_state):
     merge = None
     for m in max_vals:
@@ -35,19 +46,32 @@ def get_merged_counter(lake_state):
     if merge is not None:
         mvc = lake_state.program_map[merge[0]]
         pvc = lake_state.program_map[merge[1]]
+        new_config_name = f"config_{merge[0]}_{merge[1]}_op"
+        if type(pvc.incr_amount) is Var:
+          new_config_name = f"{pvc.incr_amount.name}_op"
         max_val = lake_state.program_map[lake_state.program_map[pvc.max_val].producing_counter].at_max()
-        merged_counter = counter_f(mvc.prev_level_input, max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(f"config_{merge[0]}_{merge[1]}_op"), mvc.incr_amount))
+        merged_counter = counter_f(mvc.prev_level_input, max_val, if_f(lake_state.program_map[pvc.prev_level_input], var_f(new_config_name), mvc.incr_amount))
         return merged_counter
     return None
 
-def get_index(index: int, lake_state: LakeDSLState):
-    sharing_nested_counters_rewrite(lake_state.program_map[index],
-                                    False,
-                                    lake_state)
-    index_ast = lake_state.program_map[index]
-    if index in replace:
-        return replace[index].index
-    return index
+
+def add_potential_counter(e, lake_state, index, prev):
+    curr = prev_vals if prev else max_vals
+    other = max_vals if prev else prev_vals
+    if type(lake_state.program_map[index]) == CounterSeq:
+        prod_counter = lake_state.program_map[index].producing_counter
+        can_merge = True
+        for m in other:
+            if e.index in other[m]:
+                can_merge = False
+        if can_merge:
+            if prod_counter in curr:
+                curr[prod_counter].append(e.index)
+            else:
+                curr[prod_counter] = [e.index]
+    sharing_nested_counters_rewrite(
+        lake_state.program_map[index], False, lake_state)
+
 
 def sharing_nested_counters_rewrite(e: AST,
                                     root: bool = True,
@@ -95,34 +119,11 @@ def sharing_nested_counters_rewrite(e: AST,
         cur_scan_idx = e.index
 
         if e.prev_level_input is not None:
-            if type(lake_state.program_map[e.prev_level_input]) == CounterSeq:
-                prev_prod_counter = lake_state.program_map[e.prev_level_input].producing_counter
-                can_merge = True
-                for m in max_vals:
-                    if e.index in max_vals[m]:
-                        can_merge = False
-                if can_merge:
-                    if prev_prod_counter in prev_vals:
-                        prev_vals[prev_prod_counter].append(e.index)
-                    else:
-                        prev_vals[prev_prod_counter] = [e.index]
-            sharing_nested_counters_rewrite(
-                lake_state.program_map[e.prev_level_input], False, lake_state)
+            add_potential_counter(e, lake_state, e.prev_level_input, True)
+
         if e.is_max_wire:
-            if type(lake_state.program_map[e.max_val]) == CounterSeq:
-                max_prod_counter = lake_state.program_map[e.max_val].producing_counter
-                can_merge = True
-                for p in prev_vals:
-                    if e.index in prev_vals[p]:
-                        can_merge = False
-                if can_merge:
-                    if max_prod_counter in max_vals:
-                        max_vals[max_prod_counter].append(e.index)
-                    else:
-                        max_vals[max_prod_counter] = [e.index]
-            sharing_nested_counters_rewrite(lake_state.program_map[e.max_val],
-                                       False,
-                                       lake_state)
+            add_potential_counter(e, lake_state, e.max_val, False)
+
         if isinstance(e.incr_amount, AST):
             sharing_nested_counters_rewrite(e.incr_amount,
                                        False,
@@ -136,6 +137,7 @@ def sharing_nested_counters_rewrite(e: AST,
         f_res = e.f(cur_scan_lambda_var)
         e_ret = sharing_nested_counters_rewrite(f_res, False, lake_state)
         e = scan_const_f(lambda z: e_ret)
+
     elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp, MulOp):
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
@@ -145,9 +147,11 @@ def sharing_nested_counters_rewrite(e: AST,
             merged = merged.val()
             lake_state.program_map[e.index] = merged
             replace[e.index] = merged
+
     elif e_type == SelectBitsOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
         lake_state.program_map[e.index] = e
+
     elif e_type == IfOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
