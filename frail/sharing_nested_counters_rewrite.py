@@ -12,6 +12,7 @@ prev_vals = {}
 max_vals = {}
 replace = {}
 
+
 def nested_counters_rewrite(e: AST,
                             root: bool = True,
                             lake_state: LakeDSLState = default_lake_state):
@@ -20,7 +21,7 @@ def nested_counters_rewrite(e: AST,
         e = sharing_nested_counters_rewrite(e, root, lake_state)
         break
     print_verilog(e=e,
-                  lake_state=lake_state, 
+                  lake_state=lake_state,
                   top_name="nested")
     return e
 
@@ -43,18 +44,18 @@ def get_merged_counter(lake_state):
             max_vals[m].remove(max_vals[m][0])
             prev_vals[m].remove(prev_vals[m][0])
             break
-          
+
     if merge is not None:
         mvc = lake_state.program_map[merge[0]]
         pvc = lake_state.program_map[merge[1]]
         new_config_name = f"config_{merge[0]}_{merge[1]}_op"
-        if type(pvc.incr_amount) is Var:
-          new_config_name = f"{pvc.incr_amount.name}_op"
+        if isinstance(pvc.incr_amount, Var):
+            new_config_name = f"{pvc.incr_amount.name}_op"
         max_val = lake_state.program_map[lake_state.program_map[pvc.max_val].producing_counter].at_max()
         merged_counter = counter_f(mvc.prev_level_input,
-                                   max_val, 
-                                   if_f(lake_state.program_map[pvc.prev_level_input], 
-                                        var_f(new_config_name), 
+                                   max_val,
+                                   if_f(lake_state.program_map[pvc.prev_level_input],
+                                        var_f(new_config_name),
                                         mvc.incr_amount))
         return merged_counter
     return None
@@ -63,7 +64,7 @@ def get_merged_counter(lake_state):
 def add_potential_counter(e, lake_state, index, prev):
     curr = prev_vals if prev else max_vals
     other = max_vals if prev else prev_vals
-    if type(lake_state.program_map[index]) == CounterSeq:
+    if isinstance(lake_state.program_map[index], CounterSeq):
         prod_counter = lake_state.program_map[index].producing_counter
         can_merge = True
         for m in other:
@@ -78,9 +79,10 @@ def add_potential_counter(e, lake_state, index, prev):
         lake_state.program_map[index], False, lake_state)
 
 
-def sharing_nested_counters_rewrite(e: AST,
-                                    root: bool = True,
-                                    lake_state: LakeDSLState = default_lake_state):
+def sharing_nested_counters_rewrite(
+        e: AST,
+        root: bool = True,
+        lake_state: LakeDSLState = default_lake_state):
     global cur_scan_idx, output_scan_index, cur_scan_lambda_var
     global printed_ops, have_merged_counters, prev_vals, max_vals
     global replace

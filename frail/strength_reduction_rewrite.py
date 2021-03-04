@@ -95,7 +95,10 @@ def strength_reduction_rewrite(e: AST,
             lake_state.program_map[e.index] = counter_f(
                 prev_level, og_counter_op.at_max(), incr_amount_op).val()
             prev_mul_index = e.index
-            e = counter_f(prev_level, og_counter_op.at_max(), incr_amount_op).val()
+            e = counter_f(
+                prev_level,
+                og_counter_op.at_max(),
+                incr_amount_op).val()
             mul_list[prev_mul_index] = e.index
 
     elif e_type == CounterOp:
