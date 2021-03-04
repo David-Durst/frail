@@ -230,7 +230,6 @@ def print_verilog(e: AST,
             incr_amount = f"x{e.incr_amount.index}"
             first_merge_max = get_var_val(print_arg(e.incr_amount.b_index, lake_state))
             add_port = ModulePort(first_merge_max, 16, False, True, False, True)
-            print("ADD PORT", add_port)
             print_verilog(e.incr_amount, False, lake_state)
             if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
                 io_ports[cur_scan_idx].append(add_port)

@@ -141,7 +141,7 @@ def sharing_nested_counters_rewrite(
         e_ret = sharing_nested_counters_rewrite(f_res, False, lake_state)
         e = scan_const_f(lambda z: e_ret)
 
-    elif e_type in (AddOp, SubOp, ModOp, EqOp, LTOp, GTOp, MulOp):
+    elif e_type == AddOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
         e.arg1_index = get_index(e.arg1_index, lake_state)
         lake_state.program_map[e.index] = e
@@ -150,6 +150,11 @@ def sharing_nested_counters_rewrite(
             merged = merged.val()
             lake_state.program_map[e.index] = merged
             replace[e.index] = merged
+
+    elif e_type in (SubOp, ModOp, EqOp, LTOp, GTOp, MulOp):
+        e.arg0_index = get_index(e.arg0_index, lake_state)
+        e.arg1_index = get_index(e.arg1_index, lake_state)
+        lake_state.program_map[e.index] = e
 
     elif e_type == SelectBitsOp:
         e.arg0_index = get_index(e.arg0_index, lake_state)
