@@ -240,10 +240,14 @@ def print_verilog(e: AST,
             add_port = ModulePort(incr_amount, e.incr_amount.width, False, True, False, False)
             print_verilog(e.incr_amount, False, lake_state)
             if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
-                io_ports[cur_scan_idx].append(ModulePort(incr_amount, e.incr_amount.width, False, True, False, False))
+                io_ports[cur_scan_idx].append(add_port)
         elif isinstance(e.incr_amount, IfOp):
             incr_amount = f"x{e.incr_amount.index}"
+            add_port = ModulePort(get_var_val(print_arg(e.incr_amount.b_index, lake_state)), 16, False, True, False, True)
+            print("ADD PORT", add_port)
             print_verilog(e.incr_amount, False, lake_state)
+            if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
+                io_ports[cur_scan_idx].append(add_port)
         else:
             assert False, "Not a valid type for value to increment counter by."
 
@@ -447,7 +451,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
             add_to_top = tab_str + io_str
             # multiple modules may have the same port, add to top module IO only once
-            if add_to_top not in top_module_io:
+            if add_to_top not in top_module_io and not port.counter_max:
                 top_module_io.append(add_to_top)
             inter_str = port.name
         module_port_str = get_tab_strs(2) + f".{port.name}({inter_str}),\n"

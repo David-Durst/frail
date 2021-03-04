@@ -41,9 +41,9 @@ module nested (
         .counter_val_81(counter_val_81),
         .counter_at_max_81(counter_at_max_81),
         .counter_at_max_55(counter_at_max_55),
-        .counter_at_max_52(counter_at_max_52),
         .config_68_74_op(config_68_74_op),
-        .x_stride(x_stride)
+        .x_stride(x_stride),
+        .counter_at_max_52(counter_at_max_52)
     );
 
     scan83 scan83 (
@@ -102,9 +102,9 @@ module scan81 (
     output logic [15:0] counter_at_max_81,
     output logic [15:0] counter_val_81,
     input logic [15:0] counter_at_max_55,
-    input logic [15:0] counter_at_max_52,
     input logic [15:0] config_68_74_op,
     input logic [15:0] x_stride,
+    input logic [15:0] counter_at_max_52,
     input logic clk
 );
     logic [15:0] x80; 
