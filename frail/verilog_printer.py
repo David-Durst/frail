@@ -23,6 +23,7 @@ counter_max_output = "counter_at_max_"
 counter_val_output = "counter_val_"
 step_if_begin = get_tab_strs(2) + "if (step) begin\n"
 step_if_end = get_tab_strs(2) + "end \n"
+
 io_ports: Dict[int, List[ModulePort]] = {}
 io_strs: Dict[int, str] = {}
 # variables (logic type) used in the combinational block
@@ -86,7 +87,7 @@ def print_verilog(e: AST,
             width = get_width(e.index, lake_state)
             add_port = ModulePort(recurrence_seq_str + str(e.producing_recurrence), width, False, True, True)
 
-        if add_port is not None and add_port not in io_ports[cur_scan_idx]:
+        if (add_port is not None) and (add_port not in io_ports[cur_scan_idx]):
             io_ports[cur_scan_idx].append(add_port)
             
         return
@@ -195,8 +196,10 @@ def print_verilog(e: AST,
 
         io_ports[cur_scan_idx] = []
         # add output port
-        io_ports[cur_scan_idx].append(ModulePort(counter_val_output + str(e.index), e.width, True, False, False, False))
-        io_ports[cur_scan_idx].append(ModulePort(counter_max_output + str(e.index), e.width, True, False, False, True))
+        counter_val_port = ModulePort(counter_val_output + str(e.index), e.width, True, False, False, False)
+        io_ports[cur_scan_idx].append(counter_val_port)
+        counter_max_port = ModulePort(counter_max_output + str(e.index), e.width, True, False, False, True)
+        io_ports[cur_scan_idx].append(counter_max_port)
         io_strs[cur_scan_idx] = ""
         var_strs[cur_scan_idx] = ""
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
@@ -213,22 +216,52 @@ def print_verilog(e: AST,
         else:
             max_signal = f"{e.width}'d{e.max_val}"
 
+        first_merge_max = None
+        if isinstance(e.incr_amount, Int):
+            incr_amount = f"{e.width}'d{e.incr_amount.val}"
+            print_verilog(e.incr_amount, False, lake_state)
+        elif isinstance(e.incr_amount, Var):
+            incr_amount = e.incr_amount.name
+            add_port = ModulePort(incr_amount, e.incr_amount.width, False, True, False, False)
+            print_verilog(e.incr_amount, False, lake_state)
+            if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
+                io_ports[cur_scan_idx].append(add_port)
+        elif isinstance(e.incr_amount, IfOp):
+            incr_amount = f"x{e.incr_amount.index}"
+            first_merge_max = get_var_val(print_arg(e.incr_amount.b_index, lake_state))
+            add_port = ModulePort(first_merge_max, 16, False, True, False, True)
+            print_verilog(e.incr_amount, False, lake_state)
+            if incr_amount not in [x.name for x in io_ports[cur_scan_idx]]:
+                io_ports[cur_scan_idx].append(add_port)
+        else:
+            assert False, "Not a valid type for value to increment counter by."
+
         # logic of checking max output, then incrementing if prev_level_input says so and not at max
-        comb_strs[cur_scan_idx] += get_tab_strs(3) + f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
-        # what are step?
+        if isinstance(lake_state.program_map[e.max_val], CounterSeq):
+            if first_merge_max is None:
+              comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                  f"{counter_max_output}{e.index} = {counter_max_output}{lake_state.program_map[e.max_val].producing_counter};\n"
+            else:
+              comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                  f"{counter_max_output}{e.index} = {counter_max_output}{lake_state.program_map[e.max_val].producing_counter} & {first_merge_max};\n"
+        else:
+            comb_strs[cur_scan_idx] += get_tab_strs(3) + \
+                f"{counter_max_output}{e.index} = {counter_val_output}{e.index} == {max_signal} - {e.width}'b1;\n"
+
         step_begin = step_if_begin if add_step else ""
         step_end = step_if_end if add_step else ""
         
+        
+
         seq_strs[cur_scan_idx] = tab_str + f"always_ff @(posedge clk) begin\n" + \
-                                 step_begin + \
-                                 get_tab_strs(3) + \
+                                step_begin + \
+                                get_tab_strs(3) + \
                                     f"{counter_val_output}{e.index} <= {enable_signal} ? " +\
                                     f"({counter_max_output}{e.index} " + \
-                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {e.width}'d{e.incr_amount})" + \
+                                    f"? {e.width}'b0 : {counter_val_output}{e.index} + {incr_amount})" + \
                                     f": {counter_val_output}{e.index}; \n" + \
-                                 step_end + \
-                                 tab_str + "end\n"
-
+                                step_end + \
+                                tab_str + "end\n"
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
         # manually added all output fports in this block
         for port in io_ports[cur_scan_idx]:
@@ -250,6 +283,7 @@ def print_verilog(e: AST,
         comb_strs[cur_scan_idx] = tab_str + "always_comb begin \n"
         seq_strs[cur_scan_idx] = ""
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
+
         f_res = e.f(cur_scan_lambda_var)
         print_verilog(f_res, False, lake_state)
         # if read from output port, write to it in a sequential block. otherwise, just forward to next block
@@ -362,7 +396,9 @@ def get_width(arg_index: int, lake_state: LakeDSLState):
         return get_width(ast_obj.producing_recurrence, lake_state)
     elif isinstance(ast_obj, CounterSeq):
         return get_width(ast_obj.producing_counter, lake_state)
-    elif isinstance(ast_obj, EqOp):
+    elif isinstance(ast_obj, EqOp) or \
+            isinstance(ast_obj, LTOp) or \
+            isinstance(ast_obj, GTOp):
         return ast_obj
     else:
         raise ValueError("unrecognized object: " + str(ast_obj))
@@ -417,7 +453,7 @@ def mod_str_from_ports(io_ports: Dict[int, List[ModulePort]],
             io_str = f"{io} logic [{port.width - 1}:0] {port.name},"
             add_to_top = tab_str + io_str
             # multiple modules may have the same port, add to top module IO only once
-            if add_to_top not in top_module_io:
+            if add_to_top not in top_module_io and not port.counter_max:
                 top_module_io.append(add_to_top)
             inter_str = port.name
         module_port_str = get_tab_strs(2) + f".{port.name}({inter_str}),\n"

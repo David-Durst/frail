@@ -20,8 +20,8 @@ def test_addr_design(
         starting_addr=0,
         strides_0=15,
         strides_1=13,
-        ranges_0=25,
-        ranges_1=13):
+        ranges_0=5,
+        ranges_1=6):
 
     if test_rand:
         max_value = 2**5
@@ -63,7 +63,7 @@ def test_addr_design(
     # no need to rst_n or clk_en yet
 
     # config regs
-    if design == "design_b" or design == "op_design":
+    if design in ("design_b", "op_design", "nested"):
         tranges, tstrides = transform_strides_and_ranges(
             [ranges_0, ranges_1],
             [strides_0, strides_1],
@@ -72,8 +72,11 @@ def test_addr_design(
         tester.circuit.x_stride = tstrides[0]
         tester.circuit.y_max = ranges_1 #tranges[1]
         tester.circuit.y_stride = tstrides[1]
+        # tester.circuit.config_68_74_op = tstrides[1]
+        # tester.circuit.config_125_131_op = tstrides[1]
+        tester.circuit.y_stride_op = tstrides[1]
         tester.circuit.offset = starting_addr
-        print("transformed:", tranges, tstrides)
+        # print("transformed:", tranges, tstrides)
     elif design == "piecewise_addr_design":
         tester.circuit.x_max = ranges_0
         tester.circuit.x_stride_0 = strides_0
@@ -116,4 +119,4 @@ def test_addr_design(
 
 
 if __name__ == "__main__":
-    test_addr_design(False, "counter_design")#, 0, 15, 20, 12, 15)
+    test_addr_design(False, "nested")#, 0, 15, 20, 12, 15)
