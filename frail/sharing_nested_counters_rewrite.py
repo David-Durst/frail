@@ -11,15 +11,16 @@ have_merged_counters: bool = False
 prev_vals = {}
 max_vals = {}
 replace = {}
-
+performed_merge = True
 
 def nested_counters_rewrite(e: AST,
                             root: bool = True,
                             lake_state: LakeDSLState = default_lake_state):
-    need_merged_counters = True
-    while (need_merged_counters):
-        e = sharing_nested_counters_rewrite(e, root, lake_state)
-        break
+    global prev_vals, max_vals, performed_merge
+    while performed_merge:
+        e, lake_state = sharing_nested_counters_rewrite(e, root, lake_state)
+        prev_vals = {}
+        max_vals = {}
     print_verilog(e=e,
                   lake_state=lake_state,
                   top_name="nested")
@@ -57,6 +58,7 @@ def get_merged_counter(lake_state):
                                    if_f(lake_state.program_map[pvc.prev_level_input],
                                         var_f(new_config_name),
                                         mvc.incr_amount))
+        performed_merge = True
         return merged_counter
     return None
 
@@ -85,7 +87,7 @@ def sharing_nested_counters_rewrite(
         lake_state: LakeDSLState = default_lake_state):
     global cur_scan_idx, output_scan_index, cur_scan_lambda_var
     global printed_ops, have_merged_counters, prev_vals, max_vals
-    global replace
+    global replace, performed_merge
 
     if root:
         cur_scan_idx = -1
@@ -102,6 +104,7 @@ def sharing_nested_counters_rewrite(
 
     printed_ops.add(e.index)
 
+    performed_merge = False
     if e_type == RecurrenceSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
@@ -138,7 +141,7 @@ def sharing_nested_counters_rewrite(
         cur_scan_idx = e.index
         cur_scan_lambda_var = var_f("scan_var_" + str(cur_scan_idx), e.width)
         f_res = e.f(cur_scan_lambda_var)
-        e_ret = sharing_nested_counters_rewrite(f_res, False, lake_state)
+        e_ret, ls = sharing_nested_counters_rewrite(f_res, False, lake_state)
         e = scan_const_f(lambda z: e_ret)
 
     elif e_type == AddOp:
@@ -166,4 +169,4 @@ def sharing_nested_counters_rewrite(
         e.b_index = get_index(e.b_index, lake_state)
         lake_state.program_map[e.index] = e
 
-    return e
+    return e, lake_state
