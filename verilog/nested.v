@@ -14,9 +14,11 @@ module nested (
     logic [15:0] counter_at_max_15;
     logic [15:0] counter_val_18;
     logic [15:0] counter_at_max_18;
-    logic [15:0] counter_val_44;
-    logic [15:0] counter_at_max_44;
-    logic [15:0] scan_inter_46;
+    logic [15:0] counter_val_37;
+    logic [15:0] counter_at_max_37;
+    logic [15:0] counter_val_56;
+    logic [15:0] counter_at_max_56;
+    logic [15:0] scan_inter_58;
 
     scan15 scan15 (
         .clk(clk),
@@ -35,26 +37,36 @@ module nested (
         .y_max(y_max)
     );
 
-    scan44 scan44 (
+    scan37 scan37 (
         .clk(clk),
         .step(step),
-        .counter_val_44(counter_val_44),
-        .counter_at_max_44(counter_at_max_44),
+        .counter_val_37(counter_val_37),
+        .counter_at_max_37(counter_at_max_37),
+        .counter_at_max_15(counter_at_max_15),
+        .x_stride(x_stride)
+    );
+
+    scan56 scan56 (
+        .clk(clk),
+        .step(step),
+        .counter_val_56(counter_val_56),
+        .counter_at_max_56(counter_at_max_56),
         .counter_at_max_18(counter_at_max_18),
         .y_stride_op(y_stride_op),
         .x_stride(x_stride),
         .counter_at_max_15(counter_at_max_15)
     );
 
-    scan46 scan46 (
+    scan58 scan58 (
         .step(step),
         .offset(offset),
-        .counter_val_44(counter_val_44),
-        .scan_var_46(scan_inter_46)
+        .counter_val_37(counter_val_37),
+        .counter_val_56(counter_val_56),
+        .scan_var_58(scan_inter_58)
     );
 
     always_comb begin
-         addr_out = scan_inter_46;
+         addr_out = scan_inter_58;
     end
 endmodule
 
@@ -97,40 +109,63 @@ module scan18 (
     end
 endmodule
 
-module scan44 (
+module scan37 (
     input logic step,
-    output logic [15:0] counter_at_max_44,
-    output logic [15:0] counter_val_44,
+    output logic [15:0] counter_at_max_37,
+    output logic [15:0] counter_val_37,
+    input logic [15:0] counter_at_max_15,
+    input logic [15:0] x_stride,
+    input logic clk
+);
+
+    always_comb begin 
+            counter_at_max_37 = counter_at_max_15;
+    end 
+
+    always_ff @(posedge clk) begin
+        if (step) begin
+            counter_val_37 <= 1'b1 ? (counter_at_max_37 ? 16'b0 : counter_val_37 + x_stride): counter_val_37; 
+        end 
+    end
+endmodule
+
+module scan56 (
+    input logic step,
+    output logic [15:0] counter_at_max_56,
+    output logic [15:0] counter_val_56,
     input logic [15:0] counter_at_max_18,
     input logic [15:0] y_stride_op,
     input logic [15:0] x_stride,
     input logic [15:0] counter_at_max_15,
     input logic clk
 );
-    logic [15:0] x43; 
+    logic [15:0] x55; 
 
     always_comb begin 
-            x43 = counter_at_max_15 ? y_stride_op : x_stride; 
-            counter_at_max_44 = counter_at_max_18 & counter_at_max_15;
+            x55 = counter_at_max_15 ? y_stride_op : x_stride; 
+            counter_at_max_56 = counter_at_max_18 & counter_at_max_15;
     end 
 
     always_ff @(posedge clk) begin
         if (step) begin
-            counter_val_44 <= 1'b1 ? (counter_at_max_44 ? 16'b0 : counter_val_44 + x43): counter_val_44; 
+            counter_val_56 <= 1'b1 ? (counter_at_max_56 ? 16'b0 : counter_val_56 + x55): counter_val_56; 
         end 
     end
 endmodule
 
-module scan46 (
+module scan58 (
     input logic step,
-    output logic [15:0] scan_var_46, 
+    output logic [15:0] scan_var_58, 
     input logic [15:0] offset,
-    input logic [15:0] counter_val_44
+    input logic [15:0] counter_val_37,
+    input logic [15:0] counter_val_56
 );
-    logic [15:0] x26; 
+    logic [15:0] x31; 
+    logic [15:0] x32; 
 
     always_comb begin 
-            x26 = offset + counter_val_44; 
-            scan_var_46 = x26; 
+            x31 = counter_val_37 + counter_val_56; 
+            x32 = offset + x31; 
+            scan_var_58 = x32; 
     end 
 endmodule

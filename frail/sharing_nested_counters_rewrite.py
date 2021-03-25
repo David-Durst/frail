@@ -19,11 +19,13 @@ def nested_counters_rewrite(e: AST,
     global prev_vals, max_vals, performed_merge
     while performed_merge:
         e, lake_state = sharing_nested_counters_rewrite(e, root, lake_state)
+        print("PREV ", prev_vals)
+        print("MAX ", max_vals)
         prev_vals = {}
         max_vals = {}
-    print_verilog(e=e,
+    """ print_verilog(e=e,
                   lake_state=lake_state,
-                  top_name="nested")
+                  top_name="nested") """
     return e
 
 
@@ -97,14 +99,14 @@ def sharing_nested_counters_rewrite(
         prev_vals = {}
         max_vals = {}
         replace = {}
+        performed_merge = False
 
     e_type = type(e)
     if e.index in printed_ops:
         return
 
     printed_ops.add(e.index)
-
-    performed_merge = False
+    
     if e_type == RecurrenceSeq:
         old_scan_idx = cur_scan_idx
         old_scan_lambda_var = cur_scan_lambda_var
